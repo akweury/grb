@@ -32,21 +32,8 @@ raw_patterns = data / 'raw_patterns'
 if not os.path.exists(raw_patterns):
     os.makedirs(raw_patterns)
 
-proximity_patterns = raw_patterns / 'proximity'
-if not os.path.exists(proximity_patterns):
-    os.makedirs(proximity_patterns)
-proximity_patterns_train = proximity_patterns / "train"
-if not os.path.exists(proximity_patterns_train):
-    os.makedirs(proximity_patterns_train)
-proximity_patterns_test = proximity_patterns / "test"
-if not os.path.exists(proximity_patterns_test):
-    os.makedirs(proximity_patterns_test)
 
 # -------------- scripts path -----------------------
 scripts = root / 'scripts'
 if not os.path.exists(scripts):
     os.mkdir(scripts)
-
-proximity_script_path = scripts / "proximity"
-if not os.path.exists(proximity_script_path):
-    os.mkdir(proximity_script_path)

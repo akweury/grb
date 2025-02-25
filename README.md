@@ -9,40 +9,43 @@ gestalt_benchmark/
 │── data/
 │   │── raw_patterns/         # Unprocessed/generated raw patterns
 │   │   │── proximity/
-│   │   │   │── pattern_0001/
-│   │   │   │   │── positive/
-│   │   │   │   │   │── img_0001.png
-│   │   │   │   │   │── img_0002.png
-│   │   │   │   │── negative/
-│   │   │   │   │   │── img_0001.png
-│   │   │   │   │   │── img_0002.png
+│   │   │   │── train/
+│   │   │   │   │── 0001_red_triangle/
+│   │   │   │   │   │── positive/
+│   │   │   │   │   │── negative/
+│   │   │   │── test/
+│   │   │   │   │── 0001_red_triangle/
+│   │   │   │   │   │── positive/
+│   │   │   │   │   │── negative/
 │   │   │── similarity/
+│   │   │   │── train/
+│   │   │   │── test/
 │   │   │── closure/
+│   │   │   │── train/
+│   │   │   │── test/
 │   │   │── symmetry/
+│   │   │   │── train/
+│   │   │   │── test/
 │   │   │── continuity/
+│   │   │   │── train/
+│   │   │   │── test/
 │   │── processed_patterns/    # Processed & labeled patterns
 │   │── metadata/              # Metadata and descriptions
 │   │   │── pattern_metadata.json
 │
 │── scripts/
 │   │── proximity/             # Folder containing scripts for proximity patterns
-│   │   │── pattern_0001.py
-│   │   │── pattern_0002.py
-│   │── similarity/            # Folder containing scripts for similarity patterns
-│   │   │── pattern_0001.py
-│   │   │── pattern_0002.py
-│   │── closure/               # Folder containing scripts for closure patterns
-│   │   │── pattern_0001.py
-│   │   │── pattern_0002.py
-│   │── symmetry/              # Folder containing scripts for symmetry patterns
-│   │   │── pattern_0001.py
-│   │   │── pattern_0002.py
-│   │── continuity/            # Folder containing scripts for continuity patterns
-│   │   │── pattern_0001.py
-│   │   │── pattern_0002.py
+│   │   │── 0001_red_triangle.py
+│   │   │── other_patterns.py
+│   │── similarity/
+│   │── closure/
+│   │── symmetry/
+│   │── continuity/
 │   │── utils/                 # Folder containing utility functions
 │   │   │── image_processing.py
 │   │   │── dataset_helpers.py
+│   │── main.py                # Entry point to generate all patterns of all principles
+│   │── config.py              # Configuration settings for colors, shapes, and numbers
 │   │── generate_patterns.py   # Script to generate patterns
 │   │── process_patterns.py    # Cleaning, labeling, augmenting
 │   │── evaluate_models.py     # Benchmarking models
@@ -72,7 +75,11 @@ pip install -r requirements.txt
 ```
 
 ## Pattern Generation
-To generate patterns based on Gestalt principles, run:
+To generate all patterns across all principles, run:
+```bash
+python scripts/main.py
+```
+To generate patterns based on a specific principle, run:
 ```bash
 python scripts/generate_patterns.py --config configs/dataset_config.yaml
 ```
@@ -109,18 +116,18 @@ Patterns are generated using basic objects such as:
 - **Circle**
 - **Square**
 
-Each pattern has its own folder within the respective principle directory, containing **positive** and **negative** subdirectories. Additionally, each principle has its own folder in the `scripts/` directory, and each pattern has its own script file for generation.
+Each pattern has its own folder within the respective principle directory, containing **train** and **test** subdirectories, and each pattern is named in the format `id_pattern_name`.
 
 ## Metadata Format
 Each pattern has an associated metadata entry in `data/metadata/pattern_metadata.json`:
 ```json
 {
-  "pattern_0001": {
+  "0001_red_triangle": {
     "type": "proximity",
     "difficulty": "easy",
     "resolution": "512x512",
     "generation_parameters": {
-      "shape": "circle",
+      "shape": "triangle",
       "spacing": "small",
       "alignment": "grid"
     }
@@ -139,4 +146,3 @@ For questions, reach out via [your contact email] or open an issue on GitHub.
 
 ---
 🚀 **Ready to challenge AI with Gestalt patterns? Start now!**
-

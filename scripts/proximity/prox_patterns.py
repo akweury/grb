@@ -20,3 +20,13 @@ def task03(p): return non_overlap_red_triange(0.05, p, 3)
 
 
 def task04(p): return non_overlap_grid(0.05, p, 2)
+
+
+# List of proximity patterns with their associated modules
+pattern_dicts = [
+    {"name": "red_triangle", "module": task01},
+    {"name": "red_triangle_two", "module": task02},
+    {"name": "red_triangle_three", "module": task03},
+    {"name": "grid_2", "module": task04},
+    # Add more patterns here
+]

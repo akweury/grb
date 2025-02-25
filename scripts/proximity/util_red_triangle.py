@@ -9,7 +9,7 @@ from scripts.utils import pos_utils, encode_utils
 
 
 def proximity_red_triangle(is_positive, obj_size, cluster_num):
-    cluster_dist = 0.5  # Increased to ensure clear separation
+    cluster_dist = 0.3  # Increased to ensure clear separation
     neighbour_dist = 0.05
     group_sizes = [2, 3]
     group_radius = 0.05
