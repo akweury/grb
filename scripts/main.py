@@ -44,18 +44,17 @@ def gen_image(objs):
     return image
 
 
-def save_patterns(principle, pattern, save_path, num_samples, is_positive):
+def save_patterns(pattern_data, pattern, save_path, num_samples, is_positive):
     for example_i in range(num_samples):
         img_path = save_path / f"{example_i:05d}.png"
         data_path = save_path / f"{example_i:05d}.json"
         objs = pattern["module"](is_positive)
         # encode symbolic object tensors
         image = gen_image(objs)
-        file_utils.save_img(img_path, data_path, principle, objs, image)
+        file_utils.save_img(img_path, data_path, pattern_data, objs, image)
 
 
 def save_principle_patterns(principle_name, pattern_dicts):
-
     principle_path = config.raw_patterns / principle_name
     file_utils.remove_folder(principle_path)
     os.makedirs(principle_path, exist_ok=True)
@@ -66,6 +65,26 @@ def save_principle_patterns(principle_name, pattern_dicts):
         pattern_counter += 1
         pattern_name = f"{pattern_counter:03d}_" + pattern["name"]
         # Run the save_patterns function if it exists in the script
+
+        group_num = pattern["name"].split("_")[-1]
+        qualifier_all = True if "all" in pattern_name else False
+        qualifier_exist = True if "exist" in pattern_name else False
+        prop_shape = True if "shape" in pattern_name else False
+        prop_color = True if "color" in pattern_name else False
+        non_overlap = True if "non_overlap" in pattern_name else False
+
+        pattern_data = {
+            "principle": principle_name,
+            "id": pattern_counter,
+            "num": config.num_samples,
+            "group_num": group_num,
+            "qualifier_all": qualifier_all,
+            "qualifier_exist": qualifier_exist,
+            "prop_shape": prop_shape,
+            "prop_color": prop_color,
+            "non_overlap": non_overlap,
+            "resolution": config.img_width
+        }
 
         print(f"{pattern_counter}/{len(pattern_dicts)} Generating {principle_name} pattern {pattern_name}...")
         train_path = principle_path / "train" / pattern_name
@@ -79,10 +98,10 @@ def save_principle_patterns(principle_name, pattern_dicts):
         os.makedirs(test_path / "positive", exist_ok=True)
         os.makedirs(test_path / "negative", exist_ok=True)
 
-        save_patterns(principle_name, pattern, train_path / "positive", num_samples=num_samp, is_positive=True)
-        save_patterns(principle_name, pattern, train_path / "negative", num_samples=num_samp, is_positive=False)
-        save_patterns(principle_name, pattern, test_path / "positive", num_samples=num_samp, is_positive=True)
-        save_patterns(principle_name, pattern, test_path / "negative", num_samples=num_samp, is_positive=False)
+        save_patterns(pattern_data, pattern, train_path / "positive", num_samples=num_samp, is_positive=True)
+        save_patterns(pattern_data, pattern, train_path / "negative", num_samples=num_samp, is_positive=False)
+        save_patterns(pattern_data, pattern, test_path / "positive", num_samples=num_samp, is_positive=True)
+        save_patterns(pattern_data, pattern, test_path / "negative", num_samples=num_samp, is_positive=False)
 
     print(f"{principle_name} pattern generation complete.")
 

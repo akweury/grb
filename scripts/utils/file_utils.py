@@ -31,15 +31,15 @@ def hconcat_imgs(img_list):
     return img
 
 
-def save_img(img_path, data_path, principle, img_data, image):
+def save_img(img_path, data_path, pattern_data, img_data, image):
 
     # save image
     Image.fromarray(image).save(img_path)
 
     # save data
-    data = {"principle": principle, "img_data": img_data}
+    pattern_data["img_data"] = img_data
     with open(data_path, 'w') as f:
-        json.dump(data, f)
+        json.dump(pattern_data, f)
 
 
 def remove_folder(folder_path):
