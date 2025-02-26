@@ -8,7 +8,7 @@ def generate_points(center, radius, n, min_distance):
     attempts = 0
     max_attempts = n * 300  # To prevent infinite loops
 
-    while len(points) < n and attempts < max_attempts:
+    while len(points) < n:
         # Generate random point in polar coordinates
         r = radius * math.sqrt(random.uniform(0, 1))  # sqrt for uniform distribution in the circle
         theta = random.uniform(0, 2 * math.pi)
@@ -25,9 +25,6 @@ def generate_points(center, radius, n, min_distance):
 
         attempts += 1
 
-    if len(points) < n:
-        print(f"Warning: Only generated {len(points)} points after {max_attempts} attempts.")
-
     return points
 
 
@@ -35,3 +32,8 @@ def euclidean_distance(anchor, existing):
     return math.sqrt((anchor[0] - existing[0]) ** 2 + (anchor[1] - existing[1]) ** 2)
 
 
+def random_pop_elements(lst):
+    num_to_pop = random.randint(0, len(lst))  # Random count of elements to remove
+    for _ in range(num_to_pop):
+        lst.pop(random.randint(0, len(lst) - 1))  # Randomly remove an element
+    return lst

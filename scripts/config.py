@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import matplotlib
 
-root = Path(__file__).parents[0]
+root = Path(__file__).parents[1]
 
 # settings
 num_samples = 10

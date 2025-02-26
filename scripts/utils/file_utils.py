@@ -4,7 +4,7 @@ import json
 from PIL import Image
 import numpy as np
 import torch
-
+import shutil
 
 def img_padding(img, pad_width=2):
     if img.ndim == 3:
@@ -40,3 +40,11 @@ def save_img(img_path, data_path, principle, img_data, image):
     data = {"principle": principle, "img_data": img_data}
     with open(data_path, 'w') as f:
         json.dump(data, f)
+
+
+def remove_folder(folder_path):
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
+        shutil.rmtree(folder_path)  # Removes folder and all its contents
+        print(f"Folder '{folder_path}' removed successfully.")
+    else:
+        print(f"Folder '{folder_path}' does not exist.")
