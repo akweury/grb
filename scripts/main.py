@@ -56,7 +56,7 @@ def save_patterns(pattern_data, pattern, save_path, num_samples, is_positive):
 
 def save_principle_patterns(principle_name, pattern_dicts):
     principle_path = config.raw_patterns / principle_name
-    file_utils.remove_folder(principle_path)
+    # file_utils.remove_folder(principle_path)
     os.makedirs(principle_path, exist_ok=True)
 
     pattern_counter = 0
