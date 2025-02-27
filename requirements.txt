@@ -7,7 +7,6 @@ imageio
 tqdm
 scipy
 lark
-openai
 matplotlib
 scikit-image
 wandb
