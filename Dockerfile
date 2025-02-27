@@ -16,7 +16,7 @@ RUN git clone git@github.com:akweury/grb.git /app
 # Install Python dependencies
 RUN pip install --upgrade pip
 WORKDIR  /app
-RUN pip install -r requirements.txt
+RUN pip install -no-cache-dir -r requirements.txt
 
 
 RUN pip install opencv-python==4.8.0.74
