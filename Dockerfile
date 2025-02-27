@@ -16,6 +16,6 @@ RUN git clone git@github.com:akweury/grb.git /app
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Set the default command for training (adjust as needed)
-CMD ["python", "train.py"]
+## Set the default command for training (adjust as needed)
+#CMD ["python", "train.py"]
 

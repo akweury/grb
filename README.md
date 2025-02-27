@@ -153,7 +153,7 @@ docker run --rm gestalt_benchmark
 For GPU-accelerated training (if available):
 ```
  
-docker run --gpus all --rm gestalt_benchmark -it
+docker run --gpus all --rm gestalt_benchmark
 ```
 
 ## Contribution
