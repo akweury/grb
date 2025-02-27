@@ -18,3 +18,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Set the default command for training (adjust as needed)
 CMD ["python", "train.py"]
+
