@@ -1,5 +1,5 @@
 # Gestalt Pattern Reasoning Benchmark
-
+![alt text](intro.png "Title")
 ## Overview
 This repository contains a dataset and benchmarking framework for **Gestalt pattern reasoning**. The dataset consists of thousands of procedurally generated visual patterns based on **Gestalt principles**, including proximity, similarity, closure, symmetry, and continuity. The benchmark is designed to evaluate both human and AI performance in recognizing and reasoning about these patterns.
 

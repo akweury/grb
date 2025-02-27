@@ -8,6 +8,7 @@ import cv2
 from scripts import config
 from scripts.utils import file_utils
 from scripts.proximity import prox_patterns
+from scripts.similarity import similarity_patterns
 
 
 def gen_image(objs):
@@ -32,6 +33,10 @@ def gen_image(objs):
             top_left = (x - size // 2, y - size // 2)
             bottom_right = (x + size // 2, y + size // 2)
             cv2.rectangle(image, top_left, bottom_right, color, -1)
+        elif obj["shape"] == "pac_man":
+            cv2.ellipse(image, (x, y), (size // 2, size // 2), 0,
+                        obj["start_angle"], obj["end_angle"], color, -1)
+
         elif obj["shape"] == "triangle":
             half_size = size // 2
             points = np.array([
@@ -56,7 +61,7 @@ def save_patterns(pattern_data, pattern, save_path, num_samples, is_positive):
 
 def save_principle_patterns(principle_name, pattern_dicts):
     principle_path = config.raw_patterns / principle_name
-    # file_utils.remove_folder(principle_path)
+    file_utils.remove_folder(principle_path)
     os.makedirs(principle_path, exist_ok=True)
 
     pattern_counter = 0
@@ -108,7 +113,8 @@ def save_principle_patterns(principle_name, pattern_dicts):
 
 def main():
     principles = {
-        "proximity": prox_patterns.pattern_dicts
+        # "proximity": prox_patterns.pattern_dicts,
+        "similarity": similarity_patterns.pattern_dicts,
     }
     for principle_name, pattern_dicts in principles.items():
         save_principle_patterns(principle_name, pattern_dicts)

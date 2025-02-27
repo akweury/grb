@@ -3,7 +3,7 @@
 from scripts import config
 
 
-def encode_objs(x, y, size, color, shape, line_width, solid):
+def encode_objs(x, y, size, color, shape, line_width, solid, start_angle=None, end_angle=None):
     data = {"x": x,
             "y": y,
             "size": size,
@@ -13,6 +13,8 @@ def encode_objs(x, y, size, color, shape, line_width, solid):
             "color_b": config.color_matplotlib[color][2],
             "shape": shape,
             "line_width": line_width,
-            "solid": solid
+            "solid": solid,
+            "start_angle": start_angle,
+            "end_angle": end_angle
             }
     return data

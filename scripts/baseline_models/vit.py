@@ -60,14 +60,20 @@ def run_vit(data_path):
     print("Evaluating ViT Model on Gestalt Patterns...")
 
     for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]:
-        print(f"\nEvaluating {principle} pattern {principle}:")
-        train_loader = get_dataloader(data_path / principle / "train")
-        test_loader = get_dataloader(data_path / principle / "test")
+        print(f"\nEvaluating {principle} patterns:")
+        principle_path = data_path / principle
 
-        print("Train Set:")
-        evaluate_vit(model, train_loader)
-        print("Test Set:")
-        evaluate_vit(model, test_loader)
+        for split in ["train", "test"]:
+            split_path = principle_path / split
+            if not split_path.exists():
+                print(f"Skipping {principle} {split} - No data found.")
+                continue
+
+            for pattern_folder in split_path.iterdir():
+                if pattern_folder.is_dir():
+                    print(f"\nEvaluating pattern: {pattern_folder.stem}")
+                    loader = get_dataloader(pattern_folder)
+                    evaluate_vit(model, loader)
 
     print("Evaluation complete.")
 
