@@ -1,15 +1,23 @@
-# Use the official PyTorch image with CUDA support
-FROM nvcr.io/nvidia/pytorch:23.04-py3
+# Use the official NVIDIA PyTorch image with CUDA support
+FROM nvcr.io/nvidia/pytorch:23.10-py3
 
 # Set the working directory inside the container
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update
+RUN apt-get update && apt-get install -y \
+    ttf-mscorefonts-installer \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
 RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime
 
+
+# Ensure SSH key has correct permissions (if using SSH cloning)
 ADD .ssh/ /root/.ssh/
+RUN chmod 600 /root/.ssh/id_rsa && ssh-keyscan github.com >> /root/.ssh/known_hosts
+
+
 # Clone the Gestalt Reasoning Benchmark repository
 RUN git clone git@github.com:akweury/grb.git /app
 
