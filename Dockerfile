@@ -3,14 +3,11 @@ FROM nvcr.io/nvidia/pytorch:23.10-py3
 
 # Set the working directory inside the container
 WORKDIR /app
-
+RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    ttf-mscorefonts-installer \
     && rm -rf /var/lib/apt/lists/*
 
-
-RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime
 
 
 # Ensure SSH key has correct permissions (if using SSH cloning)
