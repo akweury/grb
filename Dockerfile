@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     ttf-mscorefonts-installer \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+
 RUN ln -snf /usr/share/zoneinfo/Etc/UTC /etc/localtime
 
 
