@@ -134,6 +134,26 @@ Each pattern has an associated metadata entry in `data/metadata/pattern_metadata
   }
 }
 ```
+## Using Docker
+
+To ensure compatibility across environments, you can use Docker to build and run the project.
+
+### Building the Docker Image
+``` 
+docker build -t gestalt_benchmark .
+```
+
+### Running the Container
+
+For CPU-only:
+```
+docker run --rm gestalt_benchmark
+```
+
+For GPU-accelerated training (if available):
+```
+docker run --gpus all --rm gestalt_benchmark
+```
 
 ## Contribution
 We welcome contributions to improve the dataset and evaluation framework. Please submit pull requests with explanations of changes.

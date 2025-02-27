@@ -8,9 +8,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
-
+ADD .ssh/ /root/.ssh/
 # Clone the Gestalt Reasoning Benchmark repository
-RUN git clone https://github.com/akweury/grb.git /app
+RUN git clone git@github.com:akweury/grb.git /app
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
