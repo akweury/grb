@@ -5,7 +5,7 @@ FROM pytorch/pytorch:2.0.0-cuda11.7-cudnn8-runtime
 WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y libgl1-mesa-dev\
     git \
     && rm -rf /var/lib/apt/lists/*
 ADD .ssh/ /root/.ssh/
