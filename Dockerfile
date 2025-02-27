@@ -13,10 +13,11 @@ ADD .ssh/ /root/.ssh/
 # Clone the Gestalt Reasoning Benchmark repository
 RUN git clone git@github.com:akweury/grb.git /app
 
-# Install Python dependencies
-RUN pip install --upgrade pip
-WORKDIR  /app
-RUN pip install -no-cache-dir -r requirements.txt
+# Upgrade pip, setuptools, and wheel
+RUN pip install --upgrade pip setuptools wheel
+# Install Python dependencies with --no-cache-dir
+WORKDIR /app
+RUN pip install --no-cache-dir -r requirements.txt
 
 
 RUN pip install opencv-python==4.8.0.74
