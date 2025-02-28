@@ -32,6 +32,7 @@ def extract_common_rules(train_folder, processor, model):
             if os.path.exists(pattern_path):
                 for image_file in os.listdir(pattern_path):
                     image_path = os.path.join(pattern_path, image_file)
+                    print(f"image path: {image_path}")
                     positive_images.append(preprocess_image(image_path, processor))
 
     if not positive_images:
