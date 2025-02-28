@@ -26,17 +26,17 @@ tasks = {}
 # color, all
 tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "color_all"))
 # color, exist
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "color_exist"))
+tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(2, 5), "color_exist"))
 
 # shape, all
 tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "shape_all"))
 # shape, exist
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "shape_exist"))
+tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(2, 5), "shape_exist"))
 
 # color, shape, all
 tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "shape_color_all"))
 # color, shape, exist
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "shape_color_exist"))
+tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(2, 5), "shape_color_exist"))
 
 # shape
 tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "shape"))
@@ -71,13 +71,13 @@ tasks.update(create_tasks(non_overlap_big_small_2, 0.05, range(2, 5), "count_col
 
 # neural features
 # color, shape, count
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 0.8))
+# tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 0.8))
 tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 1))
 tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 1.2))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 0.8))
+# tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 0.8))
 tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 1))
 tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 1.2))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 0.8))
+# tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 0.8))
 tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 1))
 tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 1.2))
 

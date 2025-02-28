@@ -46,3 +46,13 @@ tasks.update(create_tasks_v3(non_overlap_palette, ["size", "shape", "count", "co
 
 # Convert tasks to pattern dictionary
 pattern_dicts = [{"name": key, "module": task} for key, task in tasks.items()]
+
+"""
+# kp(x):-pred_a(X), pred_b(X)
+# atom01() 
+# atom02() 
+# atom03()
+
+
+"""
+

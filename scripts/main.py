@@ -114,8 +114,8 @@ def save_principle_patterns(principle_name, pattern_dicts):
 
 def main():
     principles = {
-        # "proximity": prox_patterns.pattern_dicts,
-        "similarity": similarity_patterns.pattern_dicts,
+        "proximity": prox_patterns.pattern_dicts,
+        # "similarity": similarity_patterns.pattern_dicts,
         # "symmetry": symmetry_patterns.pattern_dicts,
     }
     for principle_name, pattern_dicts in principles.items():

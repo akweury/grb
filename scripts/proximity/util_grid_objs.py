@@ -18,7 +18,7 @@ def proximity_grid(is_positive, size, cluster_num=1, fixed_props=""):
     else:
         max_lines = 3
     if not is_positive:
-        if random.random() > 0.5:
+        if random.random() > 0.5 and cluster_num > 2:
             cluster_num -= 1
         else:
             cluster_num += 1
