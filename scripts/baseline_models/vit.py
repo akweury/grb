@@ -48,7 +48,7 @@ class ViTClassifier(nn.Module):
 
 
 # Training Function
-def train_vit(model, train_loader, device, pattern_name):
+def train_vit(model, train_loader, device):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)  # AdamW for better GPU utilization
     scaler = torch.cuda.amp.GradScaler()  # Enable mixed precision training
@@ -69,7 +69,7 @@ def train_vit(model, train_loader, device, pattern_name):
 
 
 # Evaluation Function
-def evaluate_vit(model, test_loader, device, pattern_name):
+def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
     correct, total = 0, 0
     with torch.no_grad():
@@ -81,7 +81,7 @@ def evaluate_vit(model, test_loader, device, pattern_name):
             correct += (predicted == labels).sum().item()
 
     accuracy = 100 * correct / total
-    wandb.log({f"{pattern_name}/test_accuracy": accuracy})
+    wandb.log({f"{principle}/test_accuracy": {pattern_name: accuracy}})
     print(f"Test Accuracy for {pattern_name}: {accuracy:.2f}%")
     return accuracy
 
@@ -97,16 +97,17 @@ def run_vit(data_path, device):
         principle_path = Path(data_path) / principle
         results[principle] = {}
 
-        for pattern_folder in (principle_path / "train").iterdir():
-            if pattern_folder.is_dir():
-                train_loader = get_dataloader(pattern_folder)
-                train_vit(model, train_loader, device, pattern_folder.stem)
+        pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
 
-                test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
-                if test_folder.exists():
-                    test_loader = get_dataloader(test_folder)
-                    accuracy = evaluate_vit(model, test_loader, device, pattern_folder.stem)
-                    results[principle][pattern_folder.stem] = accuracy
+        for pattern_folder in pattern_folders:
+            train_loader = get_dataloader(pattern_folder)
+            train_vit(model, train_loader, device)
+
+            test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
+            if test_folder.exists():
+                test_loader = get_dataloader(test_folder)
+                accuracy = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
+                results[principle][pattern_folder.stem] = accuracy
 
     # Save results to JSON file
     results_path = Path(data_path) / "evaluation_results.json"
