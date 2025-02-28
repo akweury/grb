@@ -19,3 +19,5 @@ gym
 numpy
 timm
 transformers
+accelerate>=0.26.0
+bitsandbytes

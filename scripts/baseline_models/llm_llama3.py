@@ -23,13 +23,14 @@ args = parser.parse_args()
 DEVICE = f"cuda:{args.device_id}" if args.device_id is not None else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
-# Load model and processor
+
 model = LlavaForConditionalGeneration.from_pretrained(
-    MODEL_NAME,
+    "llava-hf/llava-1.5-7b-hf",
     torch_dtype=TORCH_DTYPE,
-    # low_cpu_mem_usage=True,
-    load_in_4bit=True
-).to(DEVICE)
+    low_cpu_mem_usage=True,
+    load_in_4bit=True if 'cuda' in DEVICE else False,
+    device_map="auto" if args.device_id is not None else None
+).eval()
 
 processor = AutoProcessor.from_pretrained(MODEL_NAME)
 
