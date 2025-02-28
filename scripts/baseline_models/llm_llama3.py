@@ -9,7 +9,6 @@ from transformers import LlavaForConditionalGeneration, AutoProcessor
 
 from scripts import config
 from scripts.utils import file_utils
-from scripts.utils.image_processing import get_image_descriptions, process_test_image
 
 # Configuration
 MODEL_NAME = "llava-hf/llava-1.5-7b-hf"
@@ -44,72 +43,100 @@ def setup_model(device, args):
     return model, processor
 
 
+def get_common_logic_rules(pos_descriptions, neg_descriptions):
+    """Extract common logical rules that exist in all positive images but never in negative images."""
+    common_rules = set(pos_descriptions[0].split("\n")) if pos_descriptions else set()
+    for desc in pos_descriptions[1:]:
+        common_rules.intersection_update(set(desc.split("\n")))
+
+    if neg_descriptions:
+        for desc in neg_descriptions:
+            common_rules.difference_update(set(desc.split("\n")))
+
+    return list(common_rules)
+
+
+def get_image_descriptions(folder_path, model, processor, device, torch_dtype):
+    """Get descriptions for all PNG images in a folder"""
+    descriptions = []
+    if not os.path.exists(folder_path):
+        return descriptions, 0
+
+    png_files = [f for f in sorted(os.listdir(folder_path)) if file_utils.is_png_file(f)]
+    actual_count = len(png_files)
+
+    for img_file in tqdm(png_files, desc=f"Processing {os.path.basename(folder_path)}"):
+        image_path = os.path.join(folder_path, img_file)
+        try:
+            image = Image.open(image_path)
+            prompt = "USER: <image>\nAnalyze the spatial relationships and grouping principles in this image.\nASSISTANT:"
+
+            inputs = processor(
+                text=prompt,
+                images=image,
+                return_tensors="pt"
+            ).to(device, torch_dtype)
+
+            output = model.generate(
+                **inputs,
+                max_new_tokens=150,
+                do_sample=False
+            )
+
+            description = processor.decode(output[0][2:], skip_special_tokens=True)
+            clean_desc = description.split("ASSISTANT: ")[-1].strip()
+            descriptions.append(clean_desc)
+        except Exception as e:
+            print(f"Error processing {image_path}: {str(e)}")
+            descriptions.append("")
+    return descriptions, actual_count  # Return both descriptions and actual count
+
+def process_test_image(image_path, context_prompt, label, model, processor, device, torch_dtype):
+    """Process a single test image."""
+    try:
+        if not file_utils.is_png_file(image_path):
+            return {"image_path": image_path, "expected": label, "prediction": "skip", "correct": False}
+
+        image = Image.open(image_path)
+        full_prompt = f"USER: <image>\n{context_prompt}\nASSISTANT:"
+
+        inputs = processor(text=full_prompt, images=image, return_tensors="pt").to(device, torch_dtype)
+        output = model.generate(**inputs, max_new_tokens=15, do_sample=False)
+
+        response = processor.decode(output[0][2:], skip_special_tokens=True)
+        prediction = "1" if "positive" in response.lower() else "0" if "negative" in response.lower() else "unknown"
+
+        return {"image_path": image_path, "expected": label, "prediction": prediction, "correct": prediction == label}
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        return {"image_path": image_path, "expected": label, "prediction": "error", "correct": False}
+
+
 def process_principle_pattern(principle_path, pattern, model, processor, device, torch_dtype):
-    """Process a single pattern within a principle."""
+    """Process a single pattern within a principle and evaluate test accuracy."""
     results = []
+    paths = {"test_pos": os.path.join(principle_path, "test", pattern, "positive"),
+             "test_neg": os.path.join(principle_path, "test", pattern, "negative")}
+    logic_pattern = get_common_logic_rules(
+        *get_image_descriptions(os.path.join(principle_path, "train", pattern, "positive"), model, processor, device,
+                                torch_dtype))
 
-    # Construct paths for all relevant directories
-    paths = {
-        "train_pos": os.path.join(principle_path, "train", pattern, "positive"),
-        "train_neg": os.path.join(principle_path, "train", pattern, "negative"),
-        "test_pos": os.path.join(principle_path, "test", pattern, "positive"),
-        "test_neg": os.path.join(principle_path, "test", pattern, "negative")
-    }
-
-    # Get training descriptions
-    pos_descriptions, num_train_pos = get_image_descriptions(paths["train_pos"], model, processor, device, torch_dtype)
-    neg_descriptions, num_train_neg = get_image_descriptions(paths["train_neg"], model, processor, device, torch_dtype)
-
-    # Skip if insufficient training data
-    if not pos_descriptions or not neg_descriptions:
-        return results
-
-    # Define logical pattern based on positive training images
-    logic_pattern = f"Common characteristics of positive examples ({num_train_pos} samples):\n- " + "\n- ".join(
-        pos_descriptions)
-
-    # Log the discovered logic rules
-    print(f"Logic Rules for Pattern {pattern}:\n{logic_pattern}")
-    wandb.log({f"{pattern}/logic_rules": logic_pattern})
-
-    # Process test images
-    pattern_stats = {'correct': 0, 'total': 0}
-    for label, test_path in [("positive", paths["test_pos"]), ("negative", paths["test_neg"])]:
+    correct, total = 0, 0
+    for label, test_path in [("1", paths["test_pos"]), ("0", paths["test_neg"])]:
         if not os.path.exists(test_path):
             continue
-
-        for img_file in tqdm(sorted(os.listdir(test_path)), desc=f"Testing {pattern} {label}", leave=False):
+        for img_file in sorted(os.listdir(test_path)):
             if not file_utils.is_png_file(img_file):
                 continue
-
-            image_path = os.path.join(test_path, img_file)
-
-            # Provide logic pattern as context for model decision
-            test_prompt = f"{logic_pattern}\n\nAnalyze the given image and determine if it follows the above pattern. Answer strictly with 'positive' or 'negative'."
-
-            result = process_test_image(image_path, test_prompt, label, model, processor, device, torch_dtype)
+            result = process_test_image(os.path.join(test_path, img_file), logic_pattern, label, model, processor,
+                                        device, torch_dtype)
             results.append(result)
-
-            # Log ground truth and predictions
-            print(f"Image: {img_file}, Ground Truth: {label}, Prediction: {result['prediction']}")
-            wandb.log(
-                {f"{pattern}/{img_file}_ground_truth": label, f"{pattern}/{img_file}_prediction": result['prediction']})
-
-            if result['correct']:
-                pattern_stats['correct'] += 1
-            pattern_stats['total'] += 1
-
-    if pattern_stats['total'] == 0:
-        return results
-
-    # Compute accuracy
-    acc = pattern_stats['correct'] / pattern_stats['total']
-
-    # Log results
-    print(f"Pattern: {pattern}, Accuracy: {acc:.2%}")
-    wandb.log({f"{pattern}/accuracy": acc})
-
-    return acc
+            correct += result["correct"]
+            total += 1
+    accuracy = correct / total if total else 0
+    print(f"Pattern: {pattern}, Accuracy: {accuracy:.2%}")
+    wandb.log({f"{pattern}/accuracy": accuracy})
+    return accuracy
 
 
 def main():
