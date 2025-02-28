@@ -3,6 +3,7 @@ import os
 import torch
 import argparse
 import wandb
+from PIL import Image
 from tqdm import tqdm
 from transformers import LlavaForConditionalGeneration, AutoProcessor
 
@@ -21,8 +22,9 @@ def setup_device():
     parser.add_argument('--device_id', type=int, default=None, help='GPU device ID to use')
     args = parser.parse_args()
 
-    device = f"cuda:{args.device_id}" if args.device_id is not None else "cpu"
-    torch_dtype = torch.float16 if "cuda" in device else torch.float32
+    device = torch.device(
+        f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu")
+    torch_dtype = torch.float16 if "cuda" in str(device) else torch.float32
 
     return device, torch_dtype, args
 
@@ -33,7 +35,7 @@ def setup_model(device, args):
         MODEL_NAME,
         cache_dir=config.llm_path,
         device_map={"": args.device_id} if args.device_id is not None else None
-    ).to("cuda" if torch.cuda.is_available() else "cpu").eval()
+    ).to(device).eval()
 
     processor = AutoProcessor.from_pretrained(
         MODEL_NAME, cache_dir=config.llm_path
@@ -128,7 +130,7 @@ def main():
     # Initialize WandB
     wandb.init(
         project="Gestalt-Benchmark",
-        config={"model": MODEL_NAME, "device": device, "dataset_path": DATASET_PATH}
+        config={"model": MODEL_NAME, "device": str(device), "dataset_path": DATASET_PATH}
     )
 
     all_results = []
@@ -160,3 +162,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
