@@ -34,7 +34,8 @@ def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=4, pin_memory=Tr
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                      pin_memory=pin_memory), len(dataset)
 
 
 # Load Pretrained ViT Model
@@ -81,7 +82,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
             correct += (predicted == labels).sum().item()
 
     accuracy = 100 * correct / total
-    wandb.log({f"{principle}/test_accuracy": {pattern_name: accuracy}})
+    wandb.log({f"{principle}/test_accuracy": accuracy})
     print(f"Test Accuracy for {pattern_name}: {accuracy:.2f}%")
     return accuracy
 
@@ -92,6 +93,7 @@ def run_vit(data_path, device):
 
     print("Training and Evaluating ViT Model on Gestalt Patterns...")
     results = {}
+    total_accuracy = []
 
     for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]:
         principle_path = Path(data_path) / principle
@@ -100,14 +102,20 @@ def run_vit(data_path, device):
         pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
 
         for pattern_folder in pattern_folders:
-            train_loader = get_dataloader(pattern_folder)
+            train_loader, num_train_images = get_dataloader(pattern_folder)
+            wandb.log({f"{principle}/num_train_images": num_train_images})
             train_vit(model, train_loader, device)
 
             test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
             if test_folder.exists():
-                test_loader = get_dataloader(test_folder)
+                test_loader, _ = get_dataloader(test_folder)
                 accuracy = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
                 results[principle][pattern_folder.stem] = accuracy
+                total_accuracy.append(accuracy)
+
+    avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
+    wandb.log({"average_test_accuracy": avg_accuracy})
+    print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
 
     # Save results to JSON file
     results_path = Path(data_path) / "evaluation_results.json"
