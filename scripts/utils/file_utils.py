@@ -48,3 +48,15 @@ def remove_folder(folder_path):
         print(f"Folder '{folder_path}' removed successfully.")
     else:
         print(f"Folder '{folder_path}' does not exist.")
+
+def is_png_file(filename):
+    """Check if file is a PNG image"""
+    return filename.lower().endswith('.png')
+
+
+
+def count_images(folder_path):
+    """Count the number of PNG images in a folder."""
+    if not os.path.exists(folder_path):
+        return 0
+    return sum(1 for f in os.listdir(folder_path) if is_png_file(f))
