@@ -66,23 +66,10 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
 
     # Skip if insufficient training data
     if not pos_descriptions or not neg_descriptions:
-        print(f"⚠️ Skipping pattern {pattern} - missing training data")
         return results
 
-    # Create context prompt
-    context_prompt = (
-            f"POSITIVE characteristics ({num_train_pos} examples):\n- " + "\n- ".join(pos_descriptions) +
-            f"\n\nNEGATIVE characteristics ({num_train_neg} examples):\n- " + "\n- ".join(neg_descriptions) +
-            "\n\nAnalyze this new image. Answer strictly with 'positive' or 'negative'."
-    )
-
-    # Pattern statistics
-    pattern_stats = {
-        'correct': 0, 'total': 0,
-        'true_positives': 0, 'true_negatives': 0
-    }
-
     # Process test images
+    pattern_stats = {'correct': 0, 'total': 0}
     for label, test_path in [("positive", paths["test_pos"]), ("negative", paths["test_neg"])]:
         if not os.path.exists(test_path):
             continue
@@ -92,33 +79,22 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
                 continue
 
             image_path = os.path.join(test_path, img_file)
-            result = process_test_image(image_path, context_prompt, label, model, processor, device, torch_dtype)
+            result = process_test_image(image_path, "", label, model, processor, device, torch_dtype)
             results.append(result)
 
             if result['correct']:
                 pattern_stats['correct'] += 1
-                pattern_stats[f'true_{label}s'] += 1
             pattern_stats['total'] += 1
 
-    # Skip logging if no test samples
     if pattern_stats['total'] == 0:
-        print(f"⚠️ Skipping pattern {pattern} - no test samples found")
         return results
 
-    # Compute metrics
+    # Compute accuracy
     acc = pattern_stats['correct'] / pattern_stats['total']
-    tpr = pattern_stats['true_positives'] / num_test_pos if num_test_pos > 0 else 0
-    tnr = pattern_stats['true_negatives'] / num_test_neg if num_test_neg > 0 else 0
 
     # Log results
-    principle_name = os.path.basename(principle_path)
-    wandb.log({
-        f"{principle_name}/{pattern}/accuracy": acc,
-        f"{principle_name}/{pattern}/tpr": tpr,
-        f"{principle_name}/{pattern}/tnr": tnr,
-        "principle": principle_name,
-        "pattern": pattern
-    })
+    print(f"Pattern: {pattern}, Accuracy: {acc:.2%}")
+    wandb.log({f"{pattern}/accuracy": acc})
 
     return results
 
@@ -134,12 +110,13 @@ def main():
     )
 
     all_results = []
+    total_patterns = 0
+    total_accuracy = 0
+
     for principle in sorted(os.listdir(DATASET_PATH)):
         principle_path = os.path.join(DATASET_PATH, principle)
         if not os.path.isdir(principle_path):
             continue
-
-        print(f"\nEvaluating principle: {principle}")
 
         train_dir = os.path.join(principle_path, "train")
         if not os.path.exists(train_dir):
@@ -149,14 +126,14 @@ def main():
         for pattern in patterns:
             pattern_results = process_principle_pattern(principle_path, pattern, model, processor, device, torch_dtype)
             all_results.extend(pattern_results)
+            if pattern_results:
+                total_patterns += 1
+                total_accuracy += wandb.run.history._data.get(f"{pattern}/accuracy", 0)
 
     # Final logging
-    total_correct = sum(1 for res in all_results if res["correct"])
-    total_samples = len(all_results)
-    overall_acc = total_correct / total_samples if total_samples > 0 else 0
-
+    overall_acc = total_accuracy / total_patterns if total_patterns > 0 else 0
     print(f"Final Overall Accuracy: {overall_acc:.2%}")
-    wandb.log({"overall_accuracy": overall_acc, "total_samples": total_samples})
+    wandb.log({"overall_accuracy": overall_acc})
     wandb.finish()
 
 
