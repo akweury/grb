@@ -7,7 +7,7 @@ from PIL import Image
 import argparse
 from transformers import LlavaForConditionalGeneration, AutoProcessor
 from tqdm import tqdm
-
+import wandb
 from scripts import config
 
 # Configuration
@@ -23,6 +23,15 @@ args = parser.parse_args()
 DEVICE = f"cuda:{args.device_id}" if args.device_id is not None else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
+# Initialize wandb
+wandb.init(
+    project="Gestalt-Benchmark",
+    config={
+        "model": "llava-1.5-7b-hf",
+        "device": DEVICE,
+        "dataset_path": config.raw_patterns
+    }
+)
 
 # Load model and processor from config path
 model = LlavaForConditionalGeneration.from_pretrained(
@@ -39,14 +48,21 @@ processor = AutoProcessor.from_pretrained(
     cache_dir=config.llm_path  # Store processor in the same location
 )
 
-# Rest of the code remains the same as previous version
+
+def is_png_file(filename):
+    """Check if file is a PNG image"""
+    return filename.lower().endswith('.png')
+
+
 def get_image_descriptions(folder_path):
-    """Get descriptions for all images in a folder"""
+    """Get descriptions for all PNG images in a folder"""
     descriptions = []
     if not os.path.exists(folder_path):
         return descriptions
 
-    for img_file in tqdm(sorted(os.listdir(folder_path)), desc=f"Processing {os.path.basename(folder_path)}"):
+    png_files = [f for f in sorted(os.listdir(folder_path)) if is_png_file(f)]
+
+    for img_file in tqdm(png_files, desc=f"Processing {os.path.basename(folder_path)}"):
         image_path = os.path.join(folder_path, img_file)
         try:
             image = Image.open(image_path)
@@ -71,7 +87,6 @@ def get_image_descriptions(folder_path):
             print(f"Error processing {image_path}: {str(e)}")
             descriptions.append("")
     return descriptions
-
 
 def process_principle_pattern(principle_path, pattern):
     """Process a single pattern within a principle"""
@@ -117,6 +132,16 @@ def process_principle_pattern(principle_path, pattern):
 def process_test_image(image_path, context_prompt, expected_label):
     """Process a single test image"""
     try:
+        if not is_png_file(image_path):
+            return {
+                "principle": "",
+                "pattern": "",
+                "expected": expected_label,
+                "predicted": "skip",
+                "correct": False,
+                "image_path": image_path
+            }
+
         image = Image.open(image_path)
         full_prompt = f"USER: <image>\n{context_prompt}\nASSISTANT:"
 
@@ -160,8 +185,8 @@ def main():
     all_results = []
 
     # Iterate through gestalt principles
-    for principle in sorted(os.listdir(DATASET_PATH)):
-        principle_path = os.path.join(DATASET_PATH, principle)
+    for principle in sorted(os.listdir(config.raw_patterns)):
+        principle_path = os.path.join(config.raw_patterns, principle)
         if not os.path.isdir(principle_path):
             continue
 
@@ -190,31 +215,48 @@ def main():
     for res in all_results:
         key = (res["principle"], res["pattern"])
         if key not in stats:
-            stats[key] = {"total": 0, "correct": 0, "positive_total": 0, "negative_total": 0}
+            stats[key] = {"total": 0, "correct": 0}
 
         stats[key]["total"] += 1
         stats[key]["correct"] += int(res["correct"])
-        if res["expected"] == "positive":
-            stats[key]["positive_total"] += 1
-        else:
-            stats[key]["negative_total"] += 1
 
-    # Print summary
-    print("\n\nEvaluation Summary:")
-    total_correct = sum([v["correct"] for v in stats.values()])
-    total_samples = sum([v["total"] for v in stats.values()])
-    print(f"\nOverall Accuracy: {total_correct}/{total_samples} ({total_correct / total_samples:.2%})")
-
-    # Print per-pattern results
-    print("\nDetailed Results:")
+    # Log results to wandb
+    accuracy_data = []
     for (principle, pattern), data in stats.items():
         acc = data["correct"] / data["total"]
-        pos_acc = data.get("positive_accuracy", "N/A")
-        neg_acc = data.get("negative_accuracy", "N/A")
-        print(f"{principle} - {pattern}:")
-        print(f"  Accuracy: {data['correct']}/{data['total']} ({acc:.2%})")
-        print(f"  Positive samples: {data['positive_total']}")
-        print(f"  Negative samples: {data['negative_total']}\n")
+        accuracy_data.append([f"{principle}/{pattern}", acc])
+
+        # Log individual pattern accuracy
+        wandb.log({
+            "accuracy": acc,
+            "principle": principle,
+            "pattern": pattern
+        })
+
+    # Create and log line chart
+    table = wandb.Table(data=accuracy_data, columns=["pattern", "accuracy"])
+    wandb.log({
+        "accuracy_trend": wandb.plot.line(
+            table,
+            "pattern",
+            "accuracy",
+            title="Pattern Accuracy Trend"
+        )
+    })
+
+    # Calculate overall accuracy
+    total_correct = sum([v["correct"] for v in stats.values()])
+    total_samples = sum([v["total"] for v in stats.values()])
+    overall_acc = total_correct / total_samples if total_samples > 0 else 0
+
+    # Log final metrics
+    wandb.log({
+        "overall_accuracy": overall_acc,
+        "total_samples": total_samples
+    })
+
+    print(f"\nFinal Accuracy: {overall_acc:.2%}")
+    wandb.finish()
 
 
 if __name__ == "__main__":
