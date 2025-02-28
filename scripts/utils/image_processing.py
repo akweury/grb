@@ -51,7 +51,7 @@ def process_test_image(image_path, context_prompt, label, model, processor, devi
                 "principle": "",
                 "pattern": "",
                 "expected": label,
-                "predicted": "skip",
+                "prediction": "skip",
                 "correct": False,
                 "image_path": image_path
             }
@@ -79,7 +79,7 @@ def process_test_image(image_path, context_prompt, label, model, processor, devi
             "principle": os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(image_path)))),
             "pattern": os.path.basename(os.path.dirname(os.path.dirname(image_path))),
             "expected": label,
-            "predicted": prediction,
+            "prediction": prediction,
             "correct": prediction == label,
             "image_path": image_path
         }
@@ -89,7 +89,7 @@ def process_test_image(image_path, context_prompt, label, model, processor, devi
             "principle": "",
             "pattern": "",
             "expected": label,
-            "predicted": "error",
+            "prediction": "error",
             "correct": False,
             "image_path": image_path
         }
