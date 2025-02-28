@@ -58,9 +58,10 @@ def get_image_descriptions(folder_path):
     """Get descriptions for all PNG images in a folder"""
     descriptions = []
     if not os.path.exists(folder_path):
-        return descriptions
+        return descriptions,0
 
     png_files = [f for f in sorted(os.listdir(folder_path)) if is_png_file(f)]
+    actual_count = len(png_files)
 
     for img_file in tqdm(png_files, desc=f"Processing {os.path.basename(folder_path)}"):
         image_path = os.path.join(folder_path, img_file)
@@ -86,8 +87,7 @@ def get_image_descriptions(folder_path):
         except Exception as e:
             print(f"Error processing {image_path}: {str(e)}")
             descriptions.append("")
-    return descriptions
-
+    return descriptions, actual_count  # Return both descriptions and actual count
 
 def process_principle_pattern(principle_path, pattern):
     """Process a single pattern within a principle with dynamic counts and logging"""
