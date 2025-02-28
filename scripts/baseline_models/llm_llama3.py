@@ -68,6 +68,10 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
     logic_pattern = f"Common characteristics of positive examples ({num_train_pos} samples):\n- " + "\n- ".join(
         pos_descriptions)
 
+    # Log the discovered logic rules
+    print(f"Logic Rules for Pattern {pattern}:\n{logic_pattern}")
+    wandb.log({f"{pattern}/logic_rules": logic_pattern})
+
     # Process test images
     pattern_stats = {'correct': 0, 'total': 0}
     for label, test_path in [("positive", paths["test_pos"]), ("negative", paths["test_neg"])]:
@@ -85,6 +89,11 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
 
             result = process_test_image(image_path, test_prompt, label, model, processor, device, torch_dtype)
             results.append(result)
+
+            # Log ground truth and predictions
+            print(f"Image: {img_file}, Ground Truth: {label}, Prediction: {result['prediction']}")
+            wandb.log(
+                {f"{pattern}/{img_file}_ground_truth": label, f"{pattern}/{img_file}_prediction": result['prediction']})
 
             if result['correct']:
                 pattern_stats['correct'] += 1
