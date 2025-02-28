@@ -96,7 +96,7 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
     print(f"Pattern: {pattern}, Accuracy: {acc:.2%}")
     wandb.log({f"{pattern}/accuracy": acc})
 
-    return results
+    return acc
 
 
 def main():
@@ -109,7 +109,6 @@ def main():
         config={"model": MODEL_NAME, "device": str(device), "dataset_path": DATASET_PATH}
     )
 
-    all_results = []
     total_patterns = 0
     total_accuracy = 0
 
@@ -124,11 +123,10 @@ def main():
 
         patterns = [p for p in sorted(os.listdir(train_dir)) if os.path.isdir(os.path.join(train_dir, p))]
         for pattern in patterns:
-            pattern_results = process_principle_pattern(principle_path, pattern, model, processor, device, torch_dtype)
-            all_results.extend(pattern_results)
-            if pattern_results:
+            pattern_accuracy = process_principle_pattern(principle_path, pattern, model, processor, device, torch_dtype)
+            if pattern_accuracy is not None:
                 total_patterns += 1
-                total_accuracy += wandb.run.history._data.get(f"{pattern}/accuracy", 0)
+                total_accuracy += pattern_accuracy
 
     # Final logging
     overall_acc = total_accuracy / total_patterns if total_patterns > 0 else 0
@@ -139,4 +137,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
