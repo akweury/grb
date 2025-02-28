@@ -6,6 +6,8 @@ import os
 from tqdm import tqdm
 
 from scripts import config
+
+
 def load_model():
     processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf", cache_dir=config.llm_path)
     model = AutoModelForVision2Seq.from_pretrained("llava-hf/llava-1.5-7b-hf", cache_dir=config.llm_path).to(
@@ -14,6 +16,10 @@ def load_model():
 
 
 def preprocess_image(image_path, processor):
+    """Preprocess an image for model input"""
+    image = Image.open(image_path).convert("RGB")
+    inputs = processor(images=image, return_tensors="pt")
+    return inputs["pixel_values"]
     """Preprocess an image for model input"""
     image = Image.open(image_path).convert("RGB")
     inputs = processor(images=image, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
@@ -32,7 +38,31 @@ def extract_common_rules(train_folder, processor, model):
             if os.path.exists(pattern_path):
                 for image_file in os.listdir(pattern_path):
                     image_path = os.path.join(pattern_path, image_file)
-                    print(f"image path: {image_path}")
+                    img_tensor = preprocess_image(image_path, processor)
+                    if img_tensor is not None:
+                        positive_images.append(img_tensor)
+
+    if not positive_images:
+        return "No positive images found."
+
+    prompt = "Analyze the following images and describe the common patterns and rules in the positive images."
+    inputs = processor(text=[prompt], images=positive_images, return_tensors="pt", padding=True)
+
+    with torch.no_grad():
+        outputs = model.generate(**inputs)
+    reasoning = processor.batch_decode(outputs, skip_special_tokens=True)[0]
+    return reasoning
+    """Ask the model to reason the common rules in positive images"""
+    positive_images = []
+
+    for category in os.listdir(train_folder):
+        category_path = os.path.join(train_folder, category, "train")
+
+        for pattern in os.listdir(category_path):
+            pattern_path = os.path.join(category_path, pattern, "positive")
+            if os.path.exists(pattern_path):
+                for image_file in os.listdir(pattern_path):
+                    image_path = os.path.join(pattern_path, image_file)
                     positive_images.append(preprocess_image(image_path, processor))
 
     if not positive_images:
@@ -85,3 +115,4 @@ print("Learned reasoning:", reasoning)
 # Classify test images
 classification_results = classify_test_images(dataset_folder, processor, model, reasoning)
 print("Classification Results:", classification_results)
+
