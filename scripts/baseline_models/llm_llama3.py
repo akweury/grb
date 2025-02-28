@@ -45,16 +45,19 @@ def setup_model(device, args):
 
 def get_common_logic_rules(pos_descriptions, neg_descriptions):
     """Extract common logical rules that exist in all positive images but never in negative images."""
+    if not isinstance(pos_descriptions, list):
+        pos_descriptions = []
+    if not isinstance(neg_descriptions, list):
+        neg_descriptions = []
+
     common_rules = set(pos_descriptions[0].split("\n")) if pos_descriptions else set()
     for desc in pos_descriptions[1:]:
         common_rules.intersection_update(set(desc.split("\n")))
 
-    if neg_descriptions:
-        for desc in neg_descriptions:
-            common_rules.difference_update(set(desc.split("\n")))
+    for desc in neg_descriptions:
+        common_rules.difference_update(set(desc.split("\n")))
 
     return list(common_rules)
-
 
 def get_image_descriptions(folder_path, model, processor, device, torch_dtype):
     """Get descriptions for all PNG images in a folder"""
@@ -117,9 +120,11 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
     results = []
     paths = {"test_pos": os.path.join(principle_path, "test", pattern, "positive"),
              "test_neg": os.path.join(principle_path, "test", pattern, "negative")}
-    logic_pattern = get_common_logic_rules(
-        *get_image_descriptions(os.path.join(principle_path, "train", pattern, "positive"), model, processor, device,
-                                torch_dtype))
+    pos_desc, _ = get_image_descriptions(os.path.join(principle_path, "train", pattern, "positive"), model, processor,
+                                         device, torch_dtype)
+    neg_desc, _ = get_image_descriptions(os.path.join(principle_path, "train", pattern, "negative"), model, processor,
+                                         device, torch_dtype)
+    logic_pattern = get_common_logic_rules(pos_desc, neg_desc)
 
     correct, total = 0, 0
     for label, test_path in [("1", paths["test_pos"]), ("0", paths["test_neg"])]:
