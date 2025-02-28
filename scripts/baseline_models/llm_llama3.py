@@ -60,13 +60,13 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
     pos_descriptions, num_train_pos = get_image_descriptions(paths["train_pos"], model, processor, device, torch_dtype)
     neg_descriptions, num_train_neg = get_image_descriptions(paths["train_neg"], model, processor, device, torch_dtype)
 
-    # Count test images
-    num_test_pos = file_utils.count_images(paths["test_pos"])
-    num_test_neg = file_utils.count_images(paths["test_neg"])
-
     # Skip if insufficient training data
     if not pos_descriptions or not neg_descriptions:
         return results
+
+    # Define logical pattern based on positive training images
+    logic_pattern = f"Common characteristics of positive examples ({num_train_pos} samples):\n- " + "\n- ".join(
+        pos_descriptions)
 
     # Process test images
     pattern_stats = {'correct': 0, 'total': 0}
@@ -79,7 +79,11 @@ def process_principle_pattern(principle_path, pattern, model, processor, device,
                 continue
 
             image_path = os.path.join(test_path, img_file)
-            result = process_test_image(image_path, "", label, model, processor, device, torch_dtype)
+
+            # Provide logic pattern as context for model decision
+            test_prompt = f"{logic_pattern}\n\nAnalyze the given image and determine if it follows the above pattern. Answer strictly with 'positive' or 'negative'."
+
+            result = process_test_image(image_path, test_prompt, label, model, processor, device, torch_dtype)
             results.append(result)
 
             if result['correct']:
