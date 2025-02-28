@@ -7,6 +7,7 @@ import torchvision.datasets as datasets
 import timm
 import argparse
 import json
+import wandb
 from pathlib import Path
 from torch.utils.data import DataLoader
 from scripts import config
@@ -16,6 +17,14 @@ BATCH_SIZE = 64  # Increase batch size to utilize GPU better
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
+
+# Initialize Weights & Biases (WandB)
+wandb.init(project="ViT-Gestalt-Patterns", config={
+    "batch_size": BATCH_SIZE,
+    "image_size": IMAGE_SIZE,
+    "num_classes": NUM_CLASSES,
+    "epochs": EPOCHS
+})
 
 
 def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=4, pin_memory=True):
@@ -39,15 +48,13 @@ class ViTClassifier(nn.Module):
 
 
 # Training Function
-def train_vit(model, train_loader, device):
+def train_vit(model, train_loader, device, pattern_name):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)  # AdamW for better GPU utilization
     scaler = torch.cuda.amp.GradScaler()  # Enable mixed precision training
     model.train()
 
     for epoch in range(EPOCHS):
-        running_loss = 0.0
-        correct, total = 0, 0
         for images, labels in train_loader:
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             optimizer.zero_grad()
@@ -59,18 +66,10 @@ def train_vit(model, train_loader, device):
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
-            running_loss += loss.item()
-
-            predicted = torch.argmax(outputs, dim=1)
-            correct += (predicted == labels).sum().item()
-            total += labels.size(0)
-
-        accuracy = 100 * correct / total
-        print(f"Epoch [{epoch + 1}/{EPOCHS}], Loss: {running_loss / len(train_loader):.4f}, Accuracy: {accuracy:.2f}%")
 
 
 # Evaluation Function
-def evaluate_vit(model, test_loader, device):
+def evaluate_vit(model, test_loader, device, pattern_name):
     model.eval()
     correct, total = 0, 0
     with torch.no_grad():
@@ -82,6 +81,8 @@ def evaluate_vit(model, test_loader, device):
             correct += (predicted == labels).sum().item()
 
     accuracy = 100 * correct / total
+    wandb.log({f"{pattern_name}/test_accuracy": accuracy})
+    print(f"Test Accuracy for {pattern_name}: {accuracy:.2f}%")
     return accuracy
 
 
@@ -93,26 +94,19 @@ def run_vit(data_path, device):
     results = {}
 
     for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]:
-        print(f"\nProcessing {principle} patterns:")
         principle_path = Path(data_path) / principle
-
         results[principle] = {}
 
         for pattern_folder in (principle_path / "train").iterdir():
             if pattern_folder.is_dir():
-                print(f"\nTraining on pattern: {pattern_folder.stem}")
                 train_loader = get_dataloader(pattern_folder)
-                train_vit(model, train_loader, device)
+                train_vit(model, train_loader, device, pattern_folder.stem)
 
                 test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
                 if test_folder.exists():
-                    print(f"\nEvaluating pattern: {pattern_folder.stem}")
                     test_loader = get_dataloader(test_folder)
-                    accuracy = evaluate_vit(model, test_loader, device)
-                    print(f"Test Accuracy for {pattern_folder.stem}: {accuracy:.2f}%")
+                    accuracy = evaluate_vit(model, test_loader, device, pattern_folder.stem)
                     results[principle][pattern_folder.stem] = accuracy
-                else:
-                    print(f"Skipping evaluation for {pattern_folder.stem} - No test data found.")
 
     # Save results to JSON file
     results_path = Path(data_path) / "evaluation_results.json"
@@ -120,6 +114,7 @@ def run_vit(data_path, device):
         json.dump(results, json_file, indent=4)
 
     print("Training and evaluation complete. Results saved to evaluation_results.json.")
+    wandb.finish()
 
 
 if __name__ == "__main__":

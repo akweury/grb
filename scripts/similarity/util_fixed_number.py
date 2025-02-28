@@ -77,8 +77,8 @@ def similarity_fixed_number(is_positive, obj_size, cluster_num, fixed_props, qua
         raise ValueError("cluster_num must be 2, 3, or 4.")
 
     # Define object count ranges based on quantity parameter
-    quantity_map = {"s": (2, 4), "m": (4, 10), "l": (20, 30)}
-    base_count_range = quantity_map.get(quantity, (10, 20))  # Default to 'm' if invalid input
+    quantity_map = {"s": (2, 4), "m": (4, 10), "l": (10, 15)}
+    base_count_range = quantity_map.get(quantity, (4,10))  # Default to 'm' if invalid input
     base_count = random.randint(*base_count_range)
 
     def adjust_count(base):
