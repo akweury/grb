@@ -27,7 +27,7 @@ TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 model = LlavaForConditionalGeneration.from_pretrained(
     MODEL_NAME,
     torch_dtype=TORCH_DTYPE,
-    low_cpu_mem_usage=True,
+    # low_cpu_mem_usage=True,
     load_in_4bit=True
 ).to(DEVICE)
 
