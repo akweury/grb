@@ -1,20 +1,21 @@
 # Created by jing at 26.02.25
-
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import timm
+import argparse
+import json
 from pathlib import Path
 from torch.utils.data import DataLoader
-
 from scripts import config
 
 # Configuration
 BATCH_SIZE = 32
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
-DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+EPOCHS = 10
 
 
 def get_dataloader(data_dir, batch_size=BATCH_SIZE):
@@ -37,45 +38,89 @@ class ViTClassifier(nn.Module):
         return self.model(x)
 
 
+# Training Function
+def train_vit(model, train_loader, device):
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    model.train()
+
+    for epoch in range(EPOCHS):
+        running_loss = 0.0
+        correct, total = 0, 0
+        for images, labels in train_loader:
+            images, labels = images.to(device), labels.to(device)
+            optimizer.zero_grad()
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+
+            predicted = torch.argmax(outputs, dim=1)
+            correct += (predicted == labels).sum().item()
+            total += labels.size(0)
+
+        accuracy = 100 * correct / total
+        print(f"Epoch [{epoch + 1}/{EPOCHS}], Loss: {running_loss / len(train_loader):.4f}, Accuracy: {accuracy:.2f}%")
+
+
 # Evaluation Function
-def evaluate_vit(model, dataloader):
+def evaluate_vit(model, test_loader, device):
     model.eval()
     correct, total = 0, 0
     with torch.no_grad():
-        for images, labels in dataloader:
-            images, labels = images.to(DEVICE), labels.to(DEVICE)
+        for images, labels in test_loader:
+            images, labels = images.to(device), labels.to(device)
             outputs = model(images)
-            _, predicted = torch.max(outputs, 1)
+            predicted = torch.argmax(outputs, dim=1)
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
     accuracy = 100 * correct / total
-    print(f"Model Accuracy: {accuracy:.2f}%")
     return accuracy
 
 
-def run_vit(data_path):
-    model = ViTClassifier().to(DEVICE)
+def run_vit(data_path, device):
+    device = torch.device(device)
+    model = ViTClassifier().to(device)
 
-    print("Evaluating ViT Model on Gestalt Patterns...")
+    print("Training and Evaluating ViT Model on Gestalt Patterns...")
+    results = {}
 
     for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]:
-        print(f"\nEvaluating {principle} patterns:")
-        principle_path = data_path / principle
+        print(f"\nProcessing {principle} patterns:")
+        principle_path = Path(data_path) / principle
 
-        for split in ["train", "test"]:
-            split_path = principle_path / split
-            if not split_path.exists():
-                print(f"Skipping {principle} {split} - No data found.")
-                continue
+        results[principle] = {}
 
-            for pattern_folder in split_path.iterdir():
-                if pattern_folder.is_dir():
+        for pattern_folder in (principle_path / "train").iterdir():
+            if pattern_folder.is_dir():
+                print(f"\nTraining on pattern: {pattern_folder.stem}")
+                train_loader = get_dataloader(pattern_folder)
+                train_vit(model, train_loader, device)
+
+                test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
+                if test_folder.exists():
                     print(f"\nEvaluating pattern: {pattern_folder.stem}")
-                    loader = get_dataloader(pattern_folder)
-                    evaluate_vit(model, loader)
+                    test_loader = get_dataloader(test_folder)
+                    accuracy = evaluate_vit(model, test_loader, device)
+                    print(f"Test Accuracy for {pattern_folder.stem}: {accuracy:.2f}%")
+                    results[principle][pattern_folder.stem] = accuracy
+                else:
+                    print(f"Skipping evaluation for {pattern_folder.stem} - No test data found.")
 
-    print("Evaluation complete.")
+    # Save results to JSON file
+    results_path = Path(data_path) / "evaluation_results.json"
+    with open(results_path, "w") as json_file:
+        json.dump(results, json_file, indent=4)
+
+    print("Training and evaluation complete. Results saved to evaluation_results.json.")
+
 
 if __name__ == "__main__":
-    run_vit(config.raw_patterns)
+    parser = argparse.ArgumentParser(description="Train and evaluate ViT model with CUDA support.")
+    parser.add_argument("--device_id", type=int, help="Specify GPU device ID. If not provided, CPU will be used.")
+    args = parser.parse_args()
+
+    device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
+    run_vit(config.raw_patterns, device)

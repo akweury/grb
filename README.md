@@ -12,11 +12,23 @@ gestalt_benchmark/
 │   │   │   │── train/
 │   │   │   │   │── 0001_red_triangle/
 │   │   │   │   │   │── positive/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00002.png
 │   │   │   │   │   │── negative/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00002.png
 │   │   │   │── test/
 │   │   │   │   │── 0001_red_triangle/
 │   │   │   │   │   │── positive/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00002.png
 │   │   │   │   │   │── negative/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00002.png
 │   │   │── similarity/
 │   │   │   │── train/
 │   │   │   │── test/
@@ -153,8 +165,12 @@ docker run --rm gestalt_benchmark -it
 For GPU-accelerated training (if available):
 ```
  
-docker run --gpus all --rm gestalt_benchmark -it
+docker run --gpus all -it -v /home/ml-jsha/storage/grb:/app/data --rm gestalt_benchmark 
+
+python -m scripts.main
+ 
 ```
+
 
 ## Contribution
 We welcome contributions to improve the dataset and evaluation framework. Please submit pull requests with explanations of changes.
