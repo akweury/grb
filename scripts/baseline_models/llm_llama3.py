@@ -4,13 +4,23 @@
 import os
 import torch
 from PIL import Image
+import argparse
 from transformers import LlavaForConditionalGeneration, AutoProcessor
 from tqdm import tqdm
 
+from scripts import config
+
 # Configuration
-DATASET_PATH = "data/raw_patterns/"
+DATASET_PATH = config.raw_patterns
 MODEL_NAME = "llava-hf/llava-1.5-7b-hf"
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# Argument parsing
+parser = argparse.ArgumentParser(description='Evaluate LLaVA on Gestalt Principles')
+parser.add_argument('--device_id', type=int, default=None,
+                    help='GPU device ID to use (e.g., 0, 1). Omit for CPU usage')
+args = parser.parse_args()
+
+# Device configuration
+DEVICE = f"cuda:{args.device_id}" if args.device_id is not None else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
 # Load model and processor
@@ -24,6 +34,7 @@ model = LlavaForConditionalGeneration.from_pretrained(
 processor = AutoProcessor.from_pretrained(MODEL_NAME)
 
 
+# Rest of the code remains the same as previous version
 def get_image_descriptions(folder_path):
     """Get descriptions for all images in a folder"""
     descriptions = []
