@@ -1,118 +1,205 @@
 # Created by jing at 28.02.25
-import torch
-from transformers import AutoProcessor, AutoModelForVision2Seq
-from PIL import Image
+
+
 import os
+import torch
+from PIL import Image
+from transformers import LlavaForConditionalGeneration, AutoProcessor
 from tqdm import tqdm
 
-from scripts import config
+# Configuration
+DATASET_PATH = "data/raw_patterns/"
+MODEL_NAME = "llava-hf/llava-1.5-7b-hf"
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+
+# Load model and processor
+model = LlavaForConditionalGeneration.from_pretrained(
+    MODEL_NAME,
+    torch_dtype=TORCH_DTYPE,
+    low_cpu_mem_usage=True,
+    load_in_4bit=True
+).to(DEVICE)
+
+processor = AutoProcessor.from_pretrained(MODEL_NAME)
 
 
-def load_model():
-    processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf", cache_dir=config.llm_path)
-    model = AutoModelForVision2Seq.from_pretrained("llava-hf/llava-1.5-7b-hf", cache_dir=config.llm_path).to(
-        "cuda" if torch.cuda.is_available() else "cpu")
-    return processor, model
+def get_image_descriptions(folder_path):
+    """Get descriptions for all images in a folder"""
+    descriptions = []
+    if not os.path.exists(folder_path):
+        return descriptions
+
+    for img_file in tqdm(sorted(os.listdir(folder_path)), desc=f"Processing {os.path.basename(folder_path)}"):
+        image_path = os.path.join(folder_path, img_file)
+        try:
+            image = Image.open(image_path)
+            prompt = "USER: <image>\nAnalyze the spatial relationships and grouping principles in this image.\nASSISTANT:"
+
+            inputs = processor(
+                text=prompt,
+                images=image,
+                return_tensors="pt"
+            ).to(DEVICE, TORCH_DTYPE)
+
+            output = model.generate(
+                **inputs,
+                max_new_tokens=150,
+                do_sample=False
+            )
+
+            description = processor.decode(output[0][2:], skip_special_tokens=True)
+            clean_desc = description.split("ASSISTANT: ")[-1].strip()
+            descriptions.append(clean_desc)
+        except Exception as e:
+            print(f"Error processing {image_path}: {str(e)}")
+            descriptions.append("")
+    return descriptions
 
 
-def preprocess_image(image_path, processor):
-    """Preprocess an image for model input"""
-    image = Image.open(image_path).convert("RGB")
-    inputs = processor(images=image, return_tensors="pt")
-    return inputs["pixel_values"]
-    """Preprocess an image for model input"""
-    image = Image.open(image_path).convert("RGB")
-    inputs = processor(images=image, return_tensors="pt").to("cuda" if torch.cuda.is_available() else "cpu")
-    return inputs
+def process_principle_pattern(principle_path, pattern):
+    """Process a single pattern within a principle"""
+    results = []
 
+    # Path setup
+    train_pos = os.path.join(principle_path, "train", pattern, "positive")
+    train_neg = os.path.join(principle_path, "train", pattern, "negative")
+    test_pos = os.path.join(principle_path, "test", pattern, "positive")
+    test_neg = os.path.join(principle_path, "test", pattern, "negative")
 
-def extract_common_rules(train_folder, processor, model):
-    """Ask the model to reason the common rules in positive images"""
-    positive_images = []
+    # Get training descriptions
+    pos_descriptions = [d for d in get_image_descriptions(train_pos) if d]
+    neg_descriptions = [d for d in get_image_descriptions(train_neg) if d]
 
-    for category in os.listdir(train_folder):
-        category_path = os.path.join(train_folder, category, "train")
+    if not pos_descriptions or not neg_descriptions:
+        print(f"Skipping pattern {pattern} due to missing training data")
+        return results
 
-        for pattern in os.listdir(category_path):
-            pattern_path = os.path.join(category_path, pattern, "positive")
-            if os.path.exists(pattern_path):
-                for image_file in os.listdir(pattern_path):
-                    image_path = os.path.join(pattern_path, image_file)
-                    img_tensor = preprocess_image(image_path, processor)
-                    if img_tensor is not None:
-                        positive_images.append(img_tensor)
+    # Create context prompt
+    context_prompt = (
+            "From the training examples:\n"
+            "POSITIVE characteristics:\n- " + "\n- ".join(pos_descriptions) + "\n\n"
+                                                                              "NEGATIVE characteristics:\n- " + "\n- ".join(
+        neg_descriptions) + "\n\n"
+                            "For this new image, does it follow the POSITIVE pattern or NEGATIVE deviation? "
+                            "Answer strictly with 'positive' or 'negative'."
+    )
 
-    if not positive_images:
-        return "No positive images found."
+    # Process test images
+    for label, test_path in [("positive", test_pos), ("negative", test_neg)]:
+        if not os.path.exists(test_path):
+            continue
 
-    prompt = "Analyze the following images and describe the common patterns and rules in the positive images."
-    inputs = processor(text=[prompt], images=positive_images, return_tensors="pt", padding=True)
-
-    with torch.no_grad():
-        outputs = model.generate(**inputs)
-    reasoning = processor.batch_decode(outputs, skip_special_tokens=True)[0]
-    return reasoning
-    """Ask the model to reason the common rules in positive images"""
-    positive_images = []
-
-    for category in os.listdir(train_folder):
-        category_path = os.path.join(train_folder, category, "train")
-
-        for pattern in os.listdir(category_path):
-            pattern_path = os.path.join(category_path, pattern, "positive")
-            if os.path.exists(pattern_path):
-                for image_file in os.listdir(pattern_path):
-                    image_path = os.path.join(pattern_path, image_file)
-                    positive_images.append(preprocess_image(image_path, processor))
-
-    if not positive_images:
-        return "No positive images found."
-
-    prompt = "Analyze the following images and describe the common patterns and rules in the positive images."
-    inputs = processor(text=prompt, images=[img["pixel_values"] for img in positive_images], return_tensors="pt",
-                       padding=True).to("cuda" if torch.cuda.is_available() else "cpu")
-
-    with torch.no_grad():
-        outputs = model.generate(**inputs)
-    reasoning = processor.batch_decode(outputs, skip_special_tokens=True)[0]
-    return reasoning
-
-
-def classify_test_images(test_folder, processor, model, reasoning):
-    """Classify test images based on learned reasoning"""
-    results = {}
-
-    for category in os.listdir(test_folder):
-        category_path = os.path.join(test_folder, category, "test")
-
-        for pattern in os.listdir(category_path):
-            pattern_path = os.path.join(category_path, pattern)
-
-            for image_file in os.listdir(pattern_path):
-                image_path = os.path.join(pattern_path, image_file)
-                inputs = preprocess_image(image_path, processor)
-
-                prompt = f"Given the common reasoning: {reasoning}, classify this image as positive or negative."
-                inputs = processor(text=prompt, images=inputs["pixel_values"], return_tensors="pt").to(
-                    "cuda" if torch.cuda.is_available() else "cpu")
-
-                with torch.no_grad():
-                    outputs = model.generate(**inputs)
-                prediction = processor.batch_decode(outputs, skip_special_tokens=True)[0]
-                results[image_path] = prediction
+        for img_file in tqdm(sorted(os.listdir(test_path)), desc=f"Testing {pattern} {label}"):
+            image_path = os.path.join(test_path, img_file)
+            result = process_test_image(image_path, context_prompt, expected_label=label)
+            results.append(result)
 
     return results
 
 
-# Load Model
-processor, model = load_model()
+def process_test_image(image_path, context_prompt, expected_label):
+    """Process a single test image"""
+    try:
+        image = Image.open(image_path)
+        full_prompt = f"USER: <image>\n{context_prompt}\nASSISTANT:"
 
-# Train and extract reasoning
-dataset_folder = config.raw_patterns  # Updated to match dataset structure
-reasoning = extract_common_rules(dataset_folder, processor, model)
-print("Learned reasoning:", reasoning)
+        inputs = processor(
+            text=full_prompt,
+            images=image,
+            return_tensors="pt"
+        ).to(DEVICE, TORCH_DTYPE)
 
-# Classify test images
-classification_results = classify_test_images(dataset_folder, processor, model, reasoning)
-print("Classification Results:", classification_results)
+        output = model.generate(
+            **inputs,
+            max_new_tokens=15,
+            do_sample=False
+        )
 
+        response = processor.decode(output[0][2:], skip_special_tokens=True)
+        prediction = response.split("ASSISTANT: ")[-1].strip().lower()
+        prediction = "positive" if "positive" in prediction else "negative" if "negative" in prediction else "unknown"
+
+        return {
+            "principle": os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(image_path)))),
+            "pattern": os.path.basename(os.path.dirname(os.path.dirname(image_path))),
+            "expected": expected_label,
+            "predicted": prediction,
+            "correct": prediction == expected_label,
+            "image_path": image_path
+        }
+    except Exception as e:
+        print(f"Error processing {image_path}: {str(e)}")
+        return {
+            "principle": "",
+            "pattern": "",
+            "expected": expected_label,
+            "predicted": "error",
+            "correct": False,
+            "image_path": image_path
+        }
+
+
+def main():
+    all_results = []
+
+    # Iterate through gestalt principles
+    for principle in sorted(os.listdir(DATASET_PATH)):
+        principle_path = os.path.join(DATASET_PATH, principle)
+        if not os.path.isdir(principle_path):
+            continue
+
+        print(f"\n{'=' * 40}\nEvaluating principle: {principle}\n{'=' * 40}")
+
+        # Get all patterns from train directory
+        train_dir = os.path.join(principle_path, "train")
+        if not os.path.exists(train_dir):
+            print(f"No train directory found for {principle}")
+            continue
+
+        patterns = [p for p in sorted(os.listdir(train_dir)) if os.path.isdir(os.path.join(train_dir, p))]
+
+        for pattern in patterns:
+            print(f"\nProcessing pattern: {pattern}")
+            pattern_results = process_principle_pattern(principle_path, pattern)
+            all_results.extend(pattern_results)
+
+    # Calculate and display statistics
+    if not all_results:
+        print("No results collected. Check dataset paths and structure.")
+        return
+
+    # Detailed statistics
+    stats = {}
+    for res in all_results:
+        key = (res["principle"], res["pattern"])
+        if key not in stats:
+            stats[key] = {"total": 0, "correct": 0, "positive_total": 0, "negative_total": 0}
+
+        stats[key]["total"] += 1
+        stats[key]["correct"] += int(res["correct"])
+        if res["expected"] == "positive":
+            stats[key]["positive_total"] += 1
+        else:
+            stats[key]["negative_total"] += 1
+
+    # Print summary
+    print("\n\nEvaluation Summary:")
+    total_correct = sum([v["correct"] for v in stats.values()])
+    total_samples = sum([v["total"] for v in stats.values()])
+    print(f"\nOverall Accuracy: {total_correct}/{total_samples} ({total_correct / total_samples:.2%})")
+
+    # Print per-pattern results
+    print("\nDetailed Results:")
+    for (principle, pattern), data in stats.items():
+        acc = data["correct"] / data["total"]
+        pos_acc = data.get("positive_accuracy", "N/A")
+        neg_acc = data.get("negative_accuracy", "N/A")
+        print(f"{principle} - {pattern}:")
+        print(f"  Accuracy: {data['correct']}/{data['total']} ({acc:.2%})")
+        print(f"  Positive samples: {data['positive_total']}")
+        print(f"  Negative samples: {data['negative_total']}\n")
+
+
+if __name__ == "__main__":
+    main()
