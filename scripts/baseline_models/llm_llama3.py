@@ -88,46 +88,118 @@ def get_image_descriptions(folder_path):
             descriptions.append("")
     return descriptions
 
+
 def process_principle_pattern(principle_path, pattern):
-    """Process a single pattern within a principle"""
+    """Process a single pattern within a principle with dynamic counts and logging"""
     results = []
 
-    # Path setup
-    train_pos = os.path.join(principle_path, "train", pattern, "positive")
-    train_neg = os.path.join(principle_path, "train", pattern, "negative")
-    test_pos = os.path.join(principle_path, "test", pattern, "positive")
-    test_neg = os.path.join(principle_path, "test", pattern, "negative")
+    # Construct paths for all relevant directories
+    train_pos_path = os.path.join(principle_path, "train", pattern, "positive")
+    train_neg_path = os.path.join(principle_path, "train", pattern, "negative")
+    test_pos_path = os.path.join(principle_path, "test", pattern, "positive")
+    test_neg_path = os.path.join(principle_path, "test", pattern, "negative")
 
-    # Get training descriptions
-    pos_descriptions = [d for d in get_image_descriptions(train_pos) if d]
-    neg_descriptions = [d for d in get_image_descriptions(train_neg) if d]
+    # Get training descriptions and actual counts
+    pos_descriptions, num_train_pos = get_image_descriptions(train_pos_path)
+    neg_descriptions, num_train_neg = get_image_descriptions(train_neg_path)
 
+    # Count test images without processing them
+    num_test_pos = len([f for f in os.listdir(test_pos_path) if is_png_file(f)]) if os.path.exists(test_pos_path) else 0
+    num_test_neg = len([f for f in os.listdir(test_neg_path) if is_png_file(f)]) if os.path.exists(test_neg_path) else 0
+    total_test = num_test_pos + num_test_neg
+
+    # Skip patterns with insufficient training data
     if not pos_descriptions or not neg_descriptions:
-        print(f"Skipping pattern {pattern} due to missing training data")
+        print(f"⚠️ Skipping pattern {pattern} - missing training data (pos: {num_train_pos}, neg: {num_train_neg})")
         return results
 
-    # Create context prompt
+    # Create context prompt using actual training data
     context_prompt = (
-            "From the training examples:\n"
-            "POSITIVE characteristics:\n- " + "\n- ".join(pos_descriptions) + "\n\n"
-                                                                              "NEGATIVE characteristics:\n- " + "\n- ".join(
+            "From these training examples:\n"
+            f"POSITIVE characteristics ({num_train_pos} examples):\n- " + "\n- ".join(pos_descriptions) + "\n\n"
+                                                                                                          f"NEGATIVE characteristics ({num_train_neg} examples):\n- " + "\n- ".join(
         neg_descriptions) + "\n\n"
-                            "For this new image, does it follow the POSITIVE pattern or NEGATIVE deviation? "
+                            "Analyze this new image. Does it follow the POSITIVE pattern or NEGATIVE deviation? "
                             "Answer strictly with 'positive' or 'negative'."
     )
 
+    # Initialize pattern statistics
+    pattern_stats = {
+        'correct': 0,
+        'total': 0,
+        'num_train_pos': num_train_pos,
+        'num_train_neg': num_train_neg,
+        'num_test_pos': num_test_pos,
+        'num_test_neg': num_test_neg,
+        'true_positives': 0,
+        'true_negatives': 0
+    }
+
     # Process test images
-    for label, test_path in [("positive", test_pos), ("negative", test_neg)]:
+    for label, test_path in [('positive', test_pos_path), ('negative', test_neg_path)]:
         if not os.path.exists(test_path):
             continue
 
-        for img_file in tqdm(sorted(os.listdir(test_path)), desc=f"Testing {pattern} {label}"):
+        for img_file in tqdm(sorted(os.listdir(test_path)),
+                             desc=f"Testing {pattern} {label}",
+                             leave=False):
+            if not is_png_file(img_file):
+                continue
+
             image_path = os.path.join(test_path, img_file)
             result = process_test_image(image_path, context_prompt, expected_label=label)
             results.append(result)
 
-    return results
+            # Update statistics
+            if result['correct']:
+                pattern_stats['correct'] += 1
+                if label == 'positive':
+                    pattern_stats['true_positives'] += 1
+                else:
+                    pattern_stats['true_negatives'] += 1
+            pattern_stats['total'] += 1
 
+    # Skip logging if no test samples processed
+    if pattern_stats['total'] == 0:
+        print(f"⚠️ Skipping pattern {pattern} - no test samples found")
+        return results
+
+    # Calculate metrics
+    acc = pattern_stats['correct'] / pattern_stats['total']
+    principle_name = os.path.basename(principle_path)
+    tpr = pattern_stats['true_positives'] / num_test_pos if num_test_pos > 0 else 0
+    tnr = pattern_stats['true_negatives'] / num_test_neg if num_test_neg > 0 else 0
+
+    # Terminal logging
+    print(f"\n📊 Pattern: {principle_name}/{pattern}")
+    print(f"  Training: {num_train_pos}+ / {num_train_neg}-")
+    print(f"  Testing:  {num_test_pos}+ / {num_test_neg}-")
+    print(f"  Correct:  {pattern_stats['correct']}/{pattern_stats['total']}")
+    print(f"  Accuracy: {acc:.2%}")
+    print(f"  TPR:      {tpr:.2%} | TNR: {tnr:.2%}")
+    print("-" * 50)
+
+    # WandB logging
+    wandb.log({
+        # Base metrics
+        f"{principle_name}/{pattern}/accuracy": acc,
+        f"{principle_name}/{pattern}/tpr": tpr,
+        f"{principle_name}/{pattern}/tnr": tnr,
+
+        # Count metrics
+        f"{principle_name}/{pattern}/train_pos": num_train_pos,
+        f"{principle_name}/{pattern}/train_neg": num_train_neg,
+        f"{principle_name}/{pattern}/test_pos": num_test_pos,
+        f"{principle_name}/{pattern}/test_neg": num_test_neg,
+        f"{principle_name}/{pattern}/test_total": pattern_stats['total'],
+        f"{principle_name}/{pattern}/correct": pattern_stats['correct'],
+
+        # Context for filtering
+        "principle": principle_name,
+        "pattern": pattern
+    })
+
+    return results
 
 def process_test_image(image_path, context_prompt, expected_label):
     """Process a single test image"""
@@ -201,63 +273,29 @@ def main():
         patterns = [p for p in sorted(os.listdir(train_dir)) if os.path.isdir(os.path.join(train_dir, p))]
 
         for pattern in patterns:
-            print(f"\nProcessing pattern: {pattern}")
             pattern_results = process_principle_pattern(principle_path, pattern)
             all_results.extend(pattern_results)
 
-    # Calculate and display statistics
-    if not all_results:
-        print("No results collected. Check dataset paths and structure.")
-        return
+    # Final summary logging
+    if all_results:
+        # Calculate overall statistics
+        total_correct = sum(1 for res in all_results if res["correct"])
+        total_samples = len(all_results)
+        overall_acc = total_correct / total_samples if total_samples > 0 else 0
 
-    # Detailed statistics
-    stats = {}
-    for res in all_results:
-        key = (res["principle"], res["pattern"])
-        if key not in stats:
-            stats[key] = {"total": 0, "correct": 0}
+        # Terminal output
+        print(f"\n{'#' * 40}")
+        print(f"Final Overall Accuracy: {overall_acc:.2%}")
+        print(f"Total Test Samples: {total_samples}")
+        print(f"{'#' * 40}")
 
-        stats[key]["total"] += 1
-        stats[key]["correct"] += int(res["correct"])
-
-    # Log results to wandb
-    accuracy_data = []
-    for (principle, pattern), data in stats.items():
-        acc = data["correct"] / data["total"]
-        accuracy_data.append([f"{principle}/{pattern}", acc])
-
-        # Log individual pattern accuracy
+        # W&B final log
         wandb.log({
-            "accuracy": acc,
-            "principle": principle,
-            "pattern": pattern
+            "overall_accuracy": overall_acc,
+            "total_samples": total_samples
         })
 
-    # Create and log line chart
-    table = wandb.Table(data=accuracy_data, columns=["pattern", "accuracy"])
-    wandb.log({
-        "accuracy_trend": wandb.plot.line(
-            table,
-            "pattern",
-            "accuracy",
-            title="Pattern Accuracy Trend"
-        )
-    })
-
-    # Calculate overall accuracy
-    total_correct = sum([v["correct"] for v in stats.values()])
-    total_samples = sum([v["total"] for v in stats.values()])
-    overall_acc = total_correct / total_samples if total_samples > 0 else 0
-
-    # Log final metrics
-    wandb.log({
-        "overall_accuracy": overall_acc,
-        "total_samples": total_samples
-    })
-
-    print(f"\nFinal Accuracy: {overall_acc:.2%}")
     wandb.finish()
-
 
 if __name__ == "__main__":
     main()
