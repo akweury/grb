@@ -32,7 +32,10 @@ raw_patterns = data / 'raw_patterns'
 if not os.path.exists(raw_patterns):
     os.makedirs(raw_patterns)
 
-
+# -------------- llm path -----------------------
+llm_path = data/"llm_pretrained"
+if not os.path.exists(llm_path):
+    os.makedirs(llm_path)
 # -------------- scripts path -----------------------
 scripts = root / 'scripts'
 if not os.path.exists(scripts):

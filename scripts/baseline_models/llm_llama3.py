@@ -7,11 +7,15 @@ import os
 from tqdm import tqdm
 
 from scripts import config
+
+
 def load_model():
-    """Load Llama 3.2 Vision model and processor"""
-    model_name = "mistral-7B-vision"
-    processor = AutoProcessor.from_pretrained(model_name)
-    model = AutoModelForVision2Seq.from_pretrained(model_name).to("cuda" if torch.cuda.is_available() else "cpu")
+    if not os.path.exists(config.llm_path):
+        os.makedirs(config.llm_path, exist_ok=True)
+
+    processor = AutoProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf", cache_dir=config.llm_path)
+    model = AutoModelForVision2Seq.from_pretrained("llava-hf/llava-1.5-7b-hf", cache_dir=config.llm_path).to(
+        "cuda" if torch.cuda.is_available() else "cpu")
     return processor, model
 
 
