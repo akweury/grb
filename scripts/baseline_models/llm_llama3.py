@@ -34,14 +34,20 @@ wandb.init(
 )
 
 # Load model and processor from config path
+# model = LlavaForConditionalGeneration.from_pretrained(
+#     "llava-hf/llava-1.5-7b-hf",
+#     cache_dir=config.llm_path,  # Add this line to specify model storage location
+#     torch_dtype=TORCH_DTYPE,
+#     low_cpu_mem_usage=True,
+#     load_in_4bit=True if 'cuda' in DEVICE else False,
+#     device_map="auto" if args.device_id is not None else None
+# ).eval()
+
 model = LlavaForConditionalGeneration.from_pretrained(
     "llava-hf/llava-1.5-7b-hf",
-    cache_dir=config.llm_path,  # Add this line to specify model storage location
-    torch_dtype=TORCH_DTYPE,
-    low_cpu_mem_usage=True,
-    load_in_4bit=True if 'cuda' in DEVICE else False,
-    device_map="auto" if args.device_id is not None else None
-).eval()
+    cache_dir=config.llm_path,
+    device_map={"": args.device_id} if args.device_id is not None else None  # Ensure only one GPU is used
+).to("cuda" if torch.cuda.is_available() else "cpu").eval()
 
 processor = AutoProcessor.from_pretrained(
     "llava-hf/llava-1.5-7b-hf",
@@ -58,7 +64,7 @@ def get_image_descriptions(folder_path):
     """Get descriptions for all PNG images in a folder"""
     descriptions = []
     if not os.path.exists(folder_path):
-        return descriptions,0
+        return descriptions, 0
 
     png_files = [f for f in sorted(os.listdir(folder_path)) if is_png_file(f)]
     actual_count = len(png_files)
@@ -88,6 +94,7 @@ def get_image_descriptions(folder_path):
             print(f"Error processing {image_path}: {str(e)}")
             descriptions.append("")
     return descriptions, actual_count  # Return both descriptions and actual count
+
 
 def process_principle_pattern(principle_path, pattern):
     """Process a single pattern within a principle with dynamic counts and logging"""
@@ -201,6 +208,7 @@ def process_principle_pattern(principle_path, pattern):
 
     return results
 
+
 def process_test_image(image_path, context_prompt, expected_label):
     """Process a single test image"""
     try:
@@ -296,6 +304,7 @@ def main():
         })
 
     wandb.finish()
+
 
 if __name__ == "__main__":
     main()
