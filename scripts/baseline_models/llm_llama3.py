@@ -24,16 +24,20 @@ DEVICE = f"cuda:{args.device_id}" if args.device_id is not None else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
 
 
+# Load model and processor from config path
 model = LlavaForConditionalGeneration.from_pretrained(
     "llava-hf/llava-1.5-7b-hf",
+    cache_dir=config.llm_path,  # Add this line to specify model storage location
     torch_dtype=TORCH_DTYPE,
     low_cpu_mem_usage=True,
     load_in_4bit=True if 'cuda' in DEVICE else False,
     device_map="auto" if args.device_id is not None else None
 ).eval()
 
-processor = AutoProcessor.from_pretrained(MODEL_NAME)
-
+processor = AutoProcessor.from_pretrained(
+    "llava-hf/llava-1.5-7b-hf",
+    cache_dir=config.llm_path  # Store processor in the same location
+)
 
 # Rest of the code remains the same as previous version
 def get_image_descriptions(folder_path):
