@@ -12,20 +12,20 @@ from torch.utils.data import DataLoader
 from scripts import config
 
 # Configuration
-BATCH_SIZE = 32
+BATCH_SIZE = 64  # Increase batch size to utilize GPU better
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=4, pin_memory=True):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory)
 
 
 # Load Pretrained ViT Model
@@ -41,19 +41,24 @@ class ViTClassifier(nn.Module):
 # Training Function
 def train_vit(model, train_loader, device):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)  # AdamW for better GPU utilization
+    scaler = torch.cuda.amp.GradScaler()  # Enable mixed precision training
     model.train()
 
     for epoch in range(EPOCHS):
         running_loss = 0.0
         correct, total = 0, 0
         for images, labels in train_loader:
-            images, labels = images.to(device), labels.to(device)
+            images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             optimizer.zero_grad()
-            outputs = model(images)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+
+            with torch.cuda.amp.autocast():  # Mixed precision
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             running_loss += loss.item()
 
             predicted = torch.argmax(outputs, dim=1)
@@ -70,7 +75,7 @@ def evaluate_vit(model, test_loader, device):
     correct, total = 0, 0
     with torch.no_grad():
         for images, labels in test_loader:
-            images, labels = images.to(device), labels.to(device)
+            images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             outputs = model(images)
             predicted = torch.argmax(outputs, dim=1)
             total += labels.size(0)

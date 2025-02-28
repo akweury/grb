@@ -168,6 +168,7 @@ For GPU-accelerated training (if available):
 docker run --gpus all -it -v /home/ml-jsha/storage/grb:/app/data --rm gestalt_benchmark 
 
 python -m scripts.main
+python -m scripts.evaluate_models --device_id 4
  
 ```
 
