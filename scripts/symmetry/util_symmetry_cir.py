@@ -1,23 +1,42 @@
-# Created by jing at 27.02.25
+# Created by jing at 01.03.25
+
 import random
-import numpy as np
 import math
+
 from scripts import config
-from scripts.utils.shape_utils import overlaps, overflow
-from scripts.utils import pos_utils, encode_utils, data_utils
+from scripts.utils import encode_utils, data_utils
 
 
-def get_circumference_points(cluster_num, x, y, radius):
+def get_circumference_angles(cluster_num):
     """
     Generate evenly spaced points on the circumference of a circle.
     """
-    points = []
+    angles = []
     for i in range(cluster_num):
         angle = (2 * math.pi / cluster_num) * i
-        cx = x + radius * math.cos(angle)
-        cy = y + radius * math.sin(angle)
-        points.append((cx, cy))
-    return points
+        angles.append(angle)
+    return angles
+
+
+def get_symmetry_surrounding_positions(angle, radius, dtype, num_points=2):
+    """
+    Generate multiple points near the given center, ensuring they remain on the circumference.
+    """
+    positions = []
+    for p_i in range(num_points):
+        angle_offset = 0.3 * p_i
+        shifted_angle = angle + angle_offset
+        x = 0.5 + radius * math.cos(shifted_angle)
+        y = 0.5 + radius * math.sin(shifted_angle)
+        if dtype:
+            x_symmetry = 0.5 - radius * math.cos(shifted_angle)
+
+        else:
+            x_symmetry = 0.5 - radius * math.sin(shifted_angle)
+        positions.append((x, y))
+        positions.append((x_symmetry, y))
+
+    return positions
 
 
 def get_surrounding_positions(center, radius, num_points=2):
@@ -38,29 +57,22 @@ def get_surrounding_positions(center, radius, num_points=2):
     return positions
 
 
-def get_symmetry_on_cir_positions(center, radius, num_points=2):
+def get_circumference_points(cluster_num, x, y, radius):
     """
-    Generate multiple points near the given center, ensuring they remain on the circumference.
+    Generate evenly spaced points on the circumference of a circle.
     """
-    positions = []
-    angle = random.uniform(0, math.pi)
-
-    for p_i in range(int(num_points)):
-        angle_offset = 0.3 * p_i
-        shifted_angle = angle + angle_offset
-        x_right = 0.5 + radius * math.cos(shifted_angle)
-        x_left = 0.5 - radius * math.cos(shifted_angle)
-
-        y = 0.5 + radius * math.sin(shifted_angle)
-        positions.append((x_right, y))
-        positions.append((x_left, y))
-
-    return positions
+    points = []
+    for i in range(cluster_num):
+        angle = (2 * math.pi / cluster_num) * i
+        cx = x + radius * math.cos(angle)
+        cy = y + radius * math.sin(angle)
+        points.append((cx, cy))
+    return points
 
 
-def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
+def feature_symmetry_circle(params, is_positive, clu_num=1):
+    obj_size = 0.05
     objs = []
-
     shape = "circle"
     color = random.choice(config.color_large_exclude_gray)
     cir_so = 0.3 + random.random() * 0.1
@@ -73,18 +85,17 @@ def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
         line_width=-1,
         solid=True
     ))
-    dist = 1.2
-
     if "count" in params and not is_positive:
         clu_num = data_utils.neg_clu_num(clu_num, 1, clu_num + 2)
 
     # Generate evenly distributed group centers on the circumference
+    angles = get_circumference_angles(clu_num)
     group_centers = get_circumference_points(clu_num, 0.5, 0.5, cir_so)
 
     for a_i in range(clu_num):
-
         if is_positive:
             group_obj_num = random.randint(2, 4)
+            positions = get_symmetry_surrounding_positions(angles[a_i], cir_so / 2, is_positive, group_obj_num)
 
             if "shape" in params:
                 shapes = [random.choice(config.bk_shapes[1:])] * group_obj_num
@@ -106,8 +117,6 @@ def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
             else:
                 sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(group_obj_num)]
                 sizes = data_utils.duplicate_maintain_order(sizes, 2)
-
-            positions = get_symmetry_on_cir_positions(group_centers[a_i], cir_so * dist, group_obj_num)
 
         else:
             group_obj_num = random.randint(2, 4)
@@ -132,37 +141,20 @@ def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
                 sizes = [obj_size] * group_obj_num
                 sizes = data_utils.duplicate_maintain_order(sizes, 2)
             if random.random() < 0.3:
-                positions = get_surrounding_positions(group_centers[a_i], cir_so * dist, group_obj_num)
+                positions = get_surrounding_positions(group_centers[a_i], cir_so * 1, group_obj_num)
             else:
-                positions = get_symmetry_on_cir_positions(group_centers[a_i], cir_so * dist, group_obj_num)
-
-
-
-        for i in range(len(positions)):
-            objs.append(encode_utils.encode_objs(
-                x=positions[i][0],
-                y=positions[i][1],
-                size=sizes[i],
-                color=colors[i],
-                shape=shapes[i],
-                line_width=-1,
-                solid=True
-            ))
-    return objs
-
-
-def non_overlap_soloar_sys(params, is_positive, clu_num):
-    obj_size = 0.05
-
-    objs = symmetry_solar_sys(obj_size, is_positive, clu_num, params)
-    t = 0
-    tt = 0
-    max_try = 1000
-    while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = symmetry_solar_sys(obj_size, is_positive, clu_num, params)
-        if tt > 10:
-            tt = 0
-            obj_size = obj_size * 0.90
-        tt = tt + 1
-        t = t + 1
+                positions = get_symmetry_surrounding_positions(angles[a_i], cir_so / 2, is_positive, group_obj_num)
+        try:
+            for i in range(len(positions)):
+                objs.append(encode_utils.encode_objs(
+                    x=positions[i][0],
+                    y=positions[i][1],
+                    size=sizes[i],
+                    color=colors[i],
+                    shape=shapes[i],
+                    line_width=-1,
+                    solid=True
+                ))
+        except IndexError:
+            raise IndexError
     return objs

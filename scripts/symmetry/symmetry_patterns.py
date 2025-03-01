@@ -1,9 +1,8 @@
 # Created by jing at 27.02.25
 
 from itertools import combinations
-from scripts.similarity.util_fixed_number import non_overlap_fixed_number
-from scripts.similarity.util_pacman import non_overlap_pacman
-from scripts.similarity.util_palette import non_overlap_palette
+from scripts.symmetry.util_solar_system import non_overlap_soloar_sys
+from scripts.symmetry.util_symmetry_cir import feature_symmetry_circle
 
 """ 
 p: positive
@@ -39,7 +38,8 @@ def create_tasks_v3(func, params, task_sizes, obj_quantities):
 
 # Define task functions dynamically
 tasks = {}
-tasks.update(create_tasks_v3(non_overlap_fixed_number, ["shape"], range(2, 5), ["s", "m", "l"]))
+tasks.update(create_tasks_v2(non_overlap_soloar_sys, ["shape", "color", "size", "count"], range(1, 5)))
+tasks.update(create_tasks_v2(feature_symmetry_circle, ["shape", "color", "size", "count"], range(1, 5)))
 
 # Convert tasks to pattern dictionary
 pattern_dicts = [{"name": key, "module": task} for key, task in tasks.items()]
