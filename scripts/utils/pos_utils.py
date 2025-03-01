@@ -68,3 +68,155 @@ def get_spline_points(points, n):
     positions = np.stack([equal_x, equal_y], axis=-1)
     return positions
 
+
+def get_triangle_positions(obj_quantity, x, y):
+    positions = []
+
+    r = 0.3 - min(abs(0.5 - x), abs(0.5 - y))
+    n = {"s": 6, "m": 15, "l": 20}.get(obj_quantity, 2)
+    r = {"s": r * 0.8, "m": r, "l": r * 1.2}.get(obj_quantity, 2)
+    innerdegree = math.radians(30)
+    dx = r * math.cos(innerdegree)
+    dy = r * math.sin(innerdegree)
+    n = round(n / 3)
+    xs = x
+    ys = y - r
+    xe = x + dx
+    ye = y + dy
+    dxi = (xe - xs) / n
+    dyi = (ye - ys) / n
+
+    for i in range(n + 1):
+        positions.append([xs + i * dxi, ys + i * dyi])
+
+    xs = x + dx
+    ys = y + dy
+    xe = x - dx
+    ye = y + dy
+    dxi = (xe - xs) / n
+    dyi = (ye - ys) / n
+    for i in range(n):
+        positions.append([xs + (i + 1) * dxi, ys + (i + 1) * dyi])
+
+    xs = x - dx
+    ys = y + dy
+    xe = x
+    ye = y - r
+    dxi = (xe - xs) / n
+    dyi = (ye - ys) / n
+    for i in range(n - 1):
+        positions.append([xs + (i + 1) * dxi, ys + (i + 1) * dyi])
+
+    return positions
+
+
+def get_square_positions(obj_quantity, x, y):
+    positions = []
+
+    n = {"s": 6, "m": 15, "l": 20}.get(obj_quantity, 2)
+    r = 0.3 - min(abs(0.5 - x), abs(0.5 - y))
+    r = {"s": r * 0.8, "m": r, "l": r * 1.2}.get(obj_quantity, 2)
+
+    minx = x - r / 2
+    maxx = x + r / 2
+    miny = y - r / 2
+    maxy = y + r / 2
+    n = int(n / 4)
+    dx = r / n
+
+    for i in range(n + 1):
+        positions.append([minx + i * dx, miny])
+        positions.append([minx + i * dx, maxy])
+    for i in range(n - 1):
+        positions.append([minx, miny + (i + 1) * dx])
+        positions.append([maxx, miny + (i + 1) * dx])
+
+    return positions
+
+
+def get_circle_positions(obj_quantity, x, y):
+    positions = []
+
+    n = {"s": 6, "m": 15, "l": 20}.get(obj_quantity, 2)
+    r = 0.3 - min(abs(0.5 - x), abs(0.5 - y))
+    r = {"s": r * 0.8, "m": r, "l": r * 1.2}.get(obj_quantity, 2)
+
+    random_rotate_rad = random.random()
+
+    for i in range(n):
+        d = (i + random_rotate_rad) * 2 * math.pi / n
+        positions.append([x + r * math.cos(d), y + r * math.sin(d)])
+
+    return positions
+
+
+def generate_random_anchor(existing_anchors, cluster_dist=0.1, x_min=0.4, x_max=0.7, y_min=0.4, y_max=0.7):
+    # Increased to ensure clear separation
+    while True:
+        anchor = [random.uniform(x_min, x_max), random.uniform(y_min, y_max)]
+        if all(euclidean_distance(anchor, existing) > cluster_dist for existing in existing_anchors):
+            return anchor
+
+
+def get_feature_circle_positions(anchor, clu_size):
+    positions = []
+
+    x = anchor[0]
+    y = anchor[1]
+    r = 0.3 - min(abs(0.5 - x), abs(0.5 - y)) * 0.5
+    xs = x
+    ys = y - r
+
+    # correct the size to  the same area as an square
+    s = 0.7 * math.sqrt(3) * clu_size / 3
+    dx = s * math.cos(math.radians(30))
+    dy = s * math.cos(math.radians(30))
+
+    positions.append([xs - dx, ys - dy])
+    positions.append([xs + dx, ys + dy])
+    positions.append([xs - dx, ys + dy])
+    positions.append([xs + dx, ys - dy])
+    positions.append([xs, ys])
+    return positions
+
+
+def get_feature_triangle_positions(anchor, clu_size):
+    positions = []
+
+    x = anchor[0]
+    y = anchor[1]
+    r = 0.3 - min(abs(0.5 - x), abs(0.5 - y)) * 0.5
+    xs = x
+    ys = y - r
+    # correct the size to  the same area as an square
+    s = 0.7 * math.sqrt(3) * clu_size / 3
+    dx = s * math.cos(math.radians(30))
+    dy = s * math.cos(math.radians(30))
+
+    positions.append([xs, ys - s])
+    positions.append([xs + dx, ys + dy])
+    positions.append([xs - dx, ys + dy])
+    return positions
+
+
+def get_feature_square_positions(anchor, clu_size):
+    positions = []
+
+    x = anchor[0]
+    y = anchor[1]
+
+    r = 0.3 - min(abs(0.5 - x), abs(0.5 - y)) * 0.5
+    xs = x
+    ys = y - r
+
+    # correct the size to  the same area as an square
+    s = 0.7 * math.sqrt(3) * clu_size / 3
+    dx = s * math.cos(math.radians(30))
+    dy = s * math.cos(math.radians(30))
+
+    positions.append([xs - dx, ys - dy])
+    positions.append([xs + dx, ys + dy])
+    positions.append([xs - dx, ys + dy])
+    positions.append([xs + dx, ys - dy])
+
+    return positions
