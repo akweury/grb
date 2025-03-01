@@ -1,6 +1,19 @@
 # Created by jing at 26.02.25
 
 import random
+from itertools import combinations
+
+
+def get_all_combs(given_list):
+    # Generate all combinations of all lengths
+    all_combinations = []
+    for r in range(1, len(given_list) + 1):
+        all_combinations.extend(combinations(given_list, r))
+
+    # Convert to a list of lists (optional)
+    all_combinations = [list(comb) for comb in all_combinations]
+    return all_combinations
+
 
 def not_all_true(n):
     if n < 1:
@@ -50,3 +63,5 @@ def random_select_unique_mix(lst, n):
 
 def duplicate_maintain_order(lst, n=2):
     return [item for item in lst for _ in range(n)]
+
+

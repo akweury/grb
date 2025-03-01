@@ -1,6 +1,8 @@
 # Created by jing at 25.02.25
 import random
 import math
+import numpy as np
+from scipy.interpolate import make_interp_spline, interp1d
 
 
 def generate_points(center, radius, n, min_distance):
@@ -37,3 +39,32 @@ def random_pop_elements(lst):
     for _ in range(num_to_pop):
         lst.pop(random.randint(0, len(lst) - 1))  # Randomly remove an element
     return lst
+
+
+def get_spline_points(points, n):
+    # Separate the points into x and y coordinates
+    x = points[:, 0]
+    y = points[:, 1]
+    # Generate a smooth spline curve (use k=3 for cubic spline interpolation)
+    # Spline interpolation
+    spl_x = make_interp_spline(np.linspace(0, 1, len(x)), x, k=2)
+    spl_y = make_interp_spline(np.linspace(0, 1, len(y)), y, k=2)
+
+    # Dense sampling to approximate arc-length
+    dense_t = np.linspace(0, 1, 1000)
+    dense_x, dense_y = spl_x(dense_t), spl_y(dense_t)
+
+    # Calculate cumulative arc length
+    arc_lengths = np.sqrt(np.diff(dense_x) ** 2 + np.diff(dense_y) ** 2)
+    cum_arc_length = np.insert(np.cumsum(arc_lengths), 0, 0)
+
+    # Interpolate to find points equally spaced by arc-length
+    equal_distances = np.linspace(0, cum_arc_length[-1], n)
+    interp_t = interp1d(cum_arc_length, dense_t)(equal_distances)
+
+    # Get equally spaced points
+    equal_x, equal_y = spl_x(interp_t), spl_y(interp_t)
+
+    positions = np.stack([equal_x, equal_y], axis=-1)
+    return positions
+
