@@ -1,16 +1,20 @@
 # Created by jing at 25.02.25
+from scripts.utils.encode_utils import create_tasks_v2, create_tasks_v3, create_tasks_v4
 
 from scripts.proximity.util_grid_objs import non_overlap_grid
 from scripts.proximity.util_red_triangle import non_overlap_red_triangle
 from scripts.proximity.util_weird_circle import overlap_circle_features
 from scripts.proximity.util_fixed_props import non_overlap_fixed_props
-from scripts.proximity.util_big_small import non_overlap_big_small, non_overlap_big_small_2
+from scripts.proximity.util_big_small import overlap_big_small, non_overlap_big_small_2
 
 """ 
 p: positive
 s: size
 
 """
+
+size_list = ["s", "m", "l"]
+qua_list = ["all", "exist"]
 
 
 def create_tasks(func, obj_size, task_sizes, *args):
@@ -24,62 +28,13 @@ tasks = {}
 # symbolic features
 
 # color, all
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "color_all"))
-# color, exist
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(2, 5), "color_exist"))
+tasks.update(create_tasks_v4(non_overlap_red_triangle, ["shape", "color"], range(2, 5), size_list, qua_list))
+tasks.update(create_tasks_v3(non_overlap_grid, ["shape", "color"], range(2, 5), size_list))
+tasks.update(create_tasks_v2(non_overlap_fixed_props, ["shape", "color"], size_list))
+tasks.update(create_tasks_v3(overlap_big_small, ["shape", "color", "count"],  range(2, 5), size_list))
+tasks.update(
+    create_tasks_v4(overlap_circle_features, ["shape", "color"], range(2, 5), size_list, [0.8, 1, 1.2]))
 
-# shape, all
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "shape_all"))
-# shape, exist
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(2, 5), "shape_exist"))
-
-# color, shape, all
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(1, 5), "shape_color_all"))
-# color, shape, exist
-tasks.update(create_tasks(non_overlap_red_triangle, 0.05, range(2, 5), "shape_color_exist"))
-
-# shape
-tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "shape"))
-tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "shape"))
-
-# color
-tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "color"))
-tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "color"))
-
-# shape, color
-tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "shape_color"))
-tasks.update(create_tasks(non_overlap_grid, 0.05, range(2, 5), "shape_color"))
-
-# color, shape,
-tasks.update(create_tasks(non_overlap_fixed_props, 0.05, range(2, 5), "color_shape"))
-tasks.update(create_tasks(non_overlap_fixed_props, 0.05, range(2, 5), "shape"))
-tasks.update(create_tasks(non_overlap_fixed_props, 0.05, range(2, 5), "color"))
-
-# size, color, shape
-tasks.update(create_tasks(non_overlap_big_small, 0.05, range(2, 5), "color"))
-tasks.update(create_tasks(non_overlap_big_small, 0.05, range(2, 5), "shape"))
-tasks.update(create_tasks(non_overlap_big_small, 0.05, range(2, 5), "color_shape"))
-
-# size, color, shape, count
-tasks.update(create_tasks(non_overlap_big_small, 0.05, range(2, 5), "count_color"))
-tasks.update(create_tasks(non_overlap_big_small, 0.05, range(2, 5), "count_shape"))
-tasks.update(create_tasks(non_overlap_big_small, 0.05, range(2, 5), "count_color_shape"))
-
-tasks.update(create_tasks(non_overlap_big_small_2, 0.05, range(2, 5), "count_color"))
-tasks.update(create_tasks(non_overlap_big_small_2, 0.05, range(2, 5), "count_shape"))
-tasks.update(create_tasks(non_overlap_big_small_2, 0.05, range(2, 5), "count_color_shape"))
-
-# neural features
-# color, shape, count
-# tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 0.8))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 1))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color", 1.2))
-# tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 0.8))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 1))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "shape", 1.2))
-# tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 0.8))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 1))
-tasks.update(create_tasks(overlap_circle_features, 0.05, range(2, 5), "color_shape", 1.2))
 
 # Convert tasks to pattern dictionary
 pattern_dicts = [{"name": key, "module": task} for key, task in tasks.items()]

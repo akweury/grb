@@ -3,6 +3,7 @@
 from scripts import config
 from scripts.utils.data_utils import get_all_combs
 
+
 def encode_objs(x, y, size, color, shape, line_width, solid, start_angle=None, end_angle=None):
     data = {"x": x,
             "y": y,
@@ -25,6 +26,7 @@ p: positive
 s: size
 """
 
+
 def create_tasks_v2(func, params, task_sizes):
     return {f"{func.__name__}_{'_'.join(map(str, comb))}_{s}": (lambda p, s=s, comb=comb: func(comb, p, s))
             for comb in get_all_combs(params) for s in task_sizes}
@@ -34,3 +36,10 @@ def create_tasks_v3(func, params, task_sizes, obj_quantities):
     return {
         f"{func.__name__}_{'_'.join(map(str, comb))}_{s}_{oq}": (lambda p, s=s, comb=comb, oq=oq: func(comb, p, s, oq))
         for comb in get_all_combs(params) for s in task_sizes for oq in obj_quantities}
+
+
+def create_tasks_v4(func, params, task_sizes, obj_quantities, qualifiers):
+    return {
+        f"{func.__name__}_{'_'.join(map(str, comb))}_{s}_{oq}_{qua}": (
+            lambda p, s=s, comb=comb, oq=oq, qua=qua: func(comb, p, s, oq, qua))
+        for comb in get_all_combs(params) for s in task_sizes for oq in obj_quantities for qua in qualifiers}
