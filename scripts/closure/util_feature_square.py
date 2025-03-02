@@ -33,10 +33,15 @@ def feature_closure_square(is_positive, clu_num, params):
 
         positions = get_feature_square_positions(group_anchors[i], clu_size)
         shapes = ["pac_man"] * obj_num
-        if is_positive:
+        # 50% of the negative images, random object positions but other properties as same as positive
+        if not is_positive and random.random() > 0.5:
+            start_angles = random.sample(range(0, 360), obj_num)
+            end_angles = [angle + 270 for angle in start_angles]
+            is_positive = True
+        else:
             start_angles = [90, 270, 0, 180]
             end_angles = [angle + 270 for angle in start_angles]
-
+        if is_positive:
             if "color" in params or random.random() < 0.5:
                 colors = random.choices(["blue", "red"], k=obj_num)
             else:
@@ -47,21 +52,16 @@ def feature_closure_square(is_positive, clu_num, params):
             else:
                 sizes = [random.uniform(obj_size * 0.8, obj_size * 1) for _ in range(obj_num)]
         else:
-            if random.random() < 0.5:
-                start_angles =  [90, 270, 0, 180]
-                end_angles = [angle + 270 for angle in start_angles]
+            cf_params = data_utils.get_proper_sublist(params)
+            if "color" in cf_params:
+                colors = random.choices(["blue", "red"], k=obj_num)
             else:
-                start_angles = random.sample(range(0, 360), obj_num)
-                end_angles = [angle + 270 for angle in start_angles]
-
-            if "color" in params or random.random() < 0.5:
                 colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, obj_num)
-            else:
-                colors = [random.choice(config.color_large_exclude_gray)] * obj_num
-            if "size" in params or random.random() < 0.5:
-                sizes = [random.uniform(obj_size * 0.6, obj_size * 1) for _ in range(obj_num)]
-            else:
+
+            if "size" in cf_params:
                 sizes = [obj_size] * obj_num
+            else:
+                sizes = [random.uniform(obj_size * 0.6, obj_size * 1) for _ in range(obj_num)]
         try:
             for i in range(len(positions)):
                 objs.append(encode_utils.encode_objs(

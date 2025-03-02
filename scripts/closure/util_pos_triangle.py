@@ -34,11 +34,18 @@ def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity):
         positions += pos_utils.get_triangle_positions(obj_quantity, x, y)
     obj_num = len(positions)
 
+    # 30% of the negative images, random object positions but other properties as same as positive
+    if not is_positive and random.random() < 0.3:
+        positions = pos_utils.get_random_positions(obj_num, obj_size)
+        is_positive = True
     if is_positive:
         if "shape" in params or random.random() < 0.5:
             shapes = random.choices(["square", "circle"], k=obj_num)
         else:
-            shapes = data_utils.random_select_unique_mix(config.bk_shapes[1:], obj_num)
+            if random.random() < 0.5:
+                shapes = random.choices(["triangle", "circle"], k=obj_num)
+            else:
+                shapes = random.choices(["triangle", "square"], k=obj_num)
 
         if "color" in params or random.random() < 0.5:
             colors = random.choices(["green", "yellow"], k=obj_num)
@@ -46,23 +53,29 @@ def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity):
             colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, obj_num)
 
         if "size" in params or random.random() < 0.5:
+            shapes = [random.choice(["square", "circle"])] * obj_num
             sizes = [obj_size] * obj_num
         else:
             sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(obj_num)]
     else:
-        if "shape" in params or random.random() < 0.5:
-            shapes = data_utils.random_select_unique_mix(config.bk_shapes[1:], obj_num)
-        else:
-            shapes = [random.choice(config.bk_shapes[1:])] * obj_num
-        if "color" in params or random.random() < 0.5:
-            colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, obj_num)
-        else:
-            colors = [random.choice(config.color_large_exclude_gray)] * obj_num
-        if "size" in params or random.random() < 0.5:
-            sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(obj_num)]
 
+        cf_params = data_utils.get_proper_sublist(params)
+        if "shape" in cf_params:
+            shapes = random.choices(["square", "circle"], k=obj_num)
         else:
+            if random.random() < 0.5:
+                shapes = data_utils.random_select_unique_mix(["triangle", "circle"], obj_num)
+            else:
+                shapes = data_utils.random_select_unique_mix(["triangle", "square"], obj_num)
+        if "color" in cf_params:
+            colors = random.choices(["green", "yellow"], k=obj_num)
+        else:
+            colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, obj_num)
+        if "size" in cf_params:
+            shapes = [random.choice(["square", "circle"])] * obj_num
             sizes = [obj_size] * obj_num
+        else:
+            sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(obj_num)]
     try:
         for i in range(len(positions)):
             objs.append(encode_utils.encode_objs(

@@ -65,3 +65,10 @@ def duplicate_maintain_order(lst, n=2):
     return [item for item in lst for _ in range(n)]
 
 
+def get_proper_sublist(lst):
+    if not lst:
+        return []  # Return an empty list if the input list is empty
+    if len(lst) == 1:
+        return []
+    sublist_size = random.randint(1, len(lst) - 1)  # Ensure it's a proper sublist
+    return random.sample(lst, sublist_size)  # Randomly select elements

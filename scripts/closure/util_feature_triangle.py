@@ -27,7 +27,7 @@ def feature_closure_triangle(is_positive, clu_num, params):
         group_anchors.append(pos_utils.generate_random_anchor(group_anchors, cluster_dist, x_min, x_max, y_min, y_max))
 
     for i in range(clu_num):
-        clu_size = ({1: 0.4 + random.random() * 0.3,
+        clu_size = ({1: 0.4 + random.random() * 0.1,
                      2: 0.3 + random.random() * 0.1,
                      3: 0.3 + random.random() * 0.1,
                      4: 0.3 + random.random() * 0.1
@@ -36,9 +36,16 @@ def feature_closure_triangle(is_positive, clu_num, params):
 
         positions = get_feature_triangle_positions(group_anchors[i], clu_size)
         shapes = ["pac_man"] * obj_num
-        if is_positive:
+
+        # 50% of the negative images, random object positions but other properties as same as positive
+        if not is_positive and random.random() > 0.5:
+            start_angles = random.sample(range(0, 360), 3)
+            end_angles = [angle + 300 for angle in start_angles]
+            is_positive = True
+        else:
             start_angles = [120, 240, 0]
             end_angles = [angle + 300 for angle in start_angles]
+        if is_positive:
 
             if "color" in params or random.random() < 0.5:
                 colors = random.choices(["blue", "red"], k=obj_num)
@@ -50,21 +57,16 @@ def feature_closure_triangle(is_positive, clu_num, params):
             else:
                 sizes = [random.uniform(obj_size * 0.8, obj_size * 1) for _ in range(obj_num)]
         else:
-            if random.random() < 0.5:
-                start_angles = [120, 240, 0]
-                end_angles = [angle + 300 for angle in start_angles]
+            cf_params = data_utils.get_proper_sublist(params)
+            if "color" in cf_params:
+                colors = random.choices(["blue", "red"], k=obj_num)
             else:
-                start_angles = random.sample(range(0, 360), 3)
-                end_angles = [angle + 300 for angle in start_angles]
-
-            if "color" in params or random.random() < 0.5:
                 colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, obj_num)
-            else:
-                colors = [random.choice(config.color_large_exclude_gray)] * obj_num
-            if "size" in params or random.random() < 0.5:
-                sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(obj_num)]
-            else:
+
+            if "size" in cf_params:
                 sizes = [obj_size] * obj_num
+            else:
+                sizes = [random.uniform(obj_size * 0.6, obj_size * 1) for _ in range(obj_num)]
         try:
             for i in range(len(positions)):
                 objs.append(encode_utils.encode_objs(

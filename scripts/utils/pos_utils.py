@@ -220,3 +220,30 @@ def get_feature_square_positions(anchor, clu_size):
     positions.append([xs + dx, ys - dy])
 
     return positions
+
+
+def get_random_positions(obj_quantity, obj_size):
+    group_anchors = []
+    for _ in range(obj_quantity):
+        group_anchors.append(
+            generate_random_anchor(group_anchors, cluster_dist=obj_size, x_min=0.1, x_max=0.9, y_min=0.1, y_max=0.9))
+
+    return group_anchors
+
+
+def random_shift_point(position, d_min, d_max):
+    x,y = position
+    if d_min > d_max or d_min < 0 or d_max < 0:
+        raise ValueError("Ensure 0 <= d_min <= d_max.")
+
+    # Choose a random distance in the given range
+    distance = random.uniform(d_min, d_max)
+
+    # Choose a random angle in radians
+    angle = random.uniform(0, 2 * math.pi)
+
+    # Compute the new coordinates
+    new_x = x + distance * math.cos(angle)
+    new_y = y + distance * math.sin(angle)
+
+    return [new_x, new_y]
