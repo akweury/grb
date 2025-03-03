@@ -50,15 +50,43 @@ def generate_reasoning_prompt(principle):
 
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
     prompt = generate_reasoning_prompt(principle)
-    print(f"prompt: {prompt}")
-    print(f"train_positive: {train_positive}, train_negative: {train_negative}")
+
+    # DEBUG: Ensure images are in RGB and not resized manually
+    train_positive = [img.convert("RGB") for img in train_positive]
+    train_negative = [img.convert("RGB") for img in train_negative]
+
+    # DEBUG: Print input image types
+    print(f"train_positive: {len(train_positive)}, train_negative: {len(train_negative)}")
+
+    # Process inputs properly
     inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
-    print(f"logic input:{inputs}")
-    print(inputs["pixel_values"].shape)  # Should be (batch_size, 3, H, W)
+
+    # DEBUG: Print input structure
+    print("Inputs before model.generate():")
+    print(inputs.keys())
+
+    if "pixel_values" not in inputs or inputs["pixel_values"] is None:
+        raise ValueError("Error: pixel_values are missing from inputs!")
+
+    # Generate response
     outputs = model.generate(**inputs)
     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
     print(f"Inferred rules for {principle}: {logic_rules}")
     return logic_rules
+
+
+# def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
+#     prompt = generate_reasoning_prompt(principle)
+#     print(f"prompt: {prompt}")
+#     print(f"train_positive: {train_positive}, train_negative: {train_negative}")
+#     inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
+#     print(f"logic input:{inputs}")
+#     print(inputs["pixel_values"].shape)  # Should be (batch_size, 3, H, W)
+#     outputs = model.generate(**inputs)
+#     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+#     print(f"Inferred rules for {principle}: {logic_rules}")
+#     return logic_rules
 
 
 def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
