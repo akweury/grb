@@ -30,7 +30,7 @@ wandb.init(project="ViT-Gestalt-Patterns", config={
 })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=8, pin_memory=True, prefetch_factor=2):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=2, pin_memory=True, prefetch_factor=None):
     transform = transforms.Compose([
         transforms.Resize(256), transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
@@ -38,7 +38,7 @@ def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=8, pin_memory=Tr
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
     return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory,
-                      prefetch_factor=prefetch_factor, persistent_workers=False), len(dataset)
+                      prefetch_factor=prefetch_factor, persistent_workers=(num_workers > 0)), len(dataset)
 
 
 # Load Pretrained ViT Model
@@ -166,10 +166,9 @@ def run_vit(data_path, device):
     wandb.finish()
 
 
-cpu_num = 2
-torch.set_num_threads(cpu_num)  # Utilize all available threads efficiently
-os.environ['OMP_NUM_THREADS'] = str(cpu_num)  # Limit OpenMP threads
-os.environ['MKL_NUM_THREADS'] = str(cpu_num)  # Limit MKL threads
+torch.set_num_threads(torch.get_num_threads())  # Utilize all available threads efficiently
+os.environ['OMP_NUM_THREADS'] = str(torch.get_num_threads())  # Limit OpenMP threads
+os.environ['MKL_NUM_THREADS'] = str(torch.get_num_threads())  # Limit MKL threads
 
 torch.backends.cudnn.benchmark = True  # Optimize cuDNN for fixed image size
 
