@@ -110,7 +110,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     f1 = f1_score(all_labels, all_predictions, average='macro')
 
     wandb.log({f"{principle}/test_accuracy": accuracy, f"{principle}/f1_score": f1})
-    print(f"Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f}")
+    print(f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f}")
     return accuracy, f1
 
 
@@ -122,7 +122,7 @@ def run_vit(data_path, principle, batch_size, device):
     model = ViTClassifier().to(device, memory_format=torch.channels_last)
     model.load_checkpoint(checkpoint_path)
 
-    print("Training and Evaluating ViT Model on Gestalt Patterns...")
+    print(f"Training and Evaluating ViT Model on Gestalt ({principle}) Patterns...")
     results = {}
     total_accuracy = []
     total_f1_scores = []
