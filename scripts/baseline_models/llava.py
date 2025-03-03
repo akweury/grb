@@ -50,6 +50,8 @@ def generate_reasoning_prompt(principle):
 
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
     prompt = generate_reasoning_prompt(principle)
+    print(f"prompt: {prompt}")
+    print(f"train_positive: {train_positive}, train_negative: {train_negative}")
     inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
     print(f"logic input:{inputs}")
     outputs = model.generate(**inputs, max_new_tokens=1000)
