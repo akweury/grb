@@ -127,7 +127,7 @@ def run_vit(data_path, principle, batch_size, device):
     total_accuracy = []
     total_f1_scores = []
 
-    principle_path = Path(data_path) / principle
+    principle_path = Path(data_path)
     results[principle] = {}
 
     pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
@@ -139,7 +139,7 @@ def run_vit(data_path, principle, batch_size, device):
 
         torch.cuda.empty_cache()
 
-        test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
+        test_folder = Path(data_path) / "test" / pattern_folder.stem
         if test_folder.exists():
             test_loader, _ = get_dataloader(test_folder, batch_size)
             accuracy, f1 = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
@@ -180,4 +180,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
-    run_vit(config.raw_patterns, "proximity", device)
+    run_vit(config.raw_patterns, "proximity", 2, device)
