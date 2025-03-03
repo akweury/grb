@@ -29,19 +29,29 @@ wandb.init(project="ViT-Gestalt-Patterns", config={
 })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=2, pin_memory=False):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=0, pin_memory=False):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
-                      pin_memory=pin_memory), len(dataset)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory,
+                      persistent_workers=True), len(dataset)
 
 
 # Load Pretrained ViT Model
 class ViTClassifier(nn.Module):
+    def save_checkpoint(self, filepath):
+        torch.save(self.state_dict(), filepath)
+
+    def load_checkpoint(self, filepath):
+        if Path(filepath).exists():
+            self.load_state_dict(torch.load(filepath))
+            print(f"Checkpoint loaded from {filepath}")
+        else:
+            print("No checkpoint found, starting from scratch.")
+
     def __init__(self, num_classes=NUM_CLASSES):
         super(ViTClassifier, self).__init__()
         self.model = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=num_classes)
@@ -51,7 +61,7 @@ class ViTClassifier(nn.Module):
 
 
 # Training Function
-def train_vit(model, train_loader, device):
+def train_vit(model, train_loader, device, checkpoint_path):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)
     scaler = torch.cuda.amp.GradScaler()
@@ -101,8 +111,10 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
 
 
 def run_vit(data_path, device):
+    checkpoint_path = Path(data_path) / "vit_checkpoint.pth"
     device = torch.device(device)
     model = ViTClassifier().to(device)
+    model.load_checkpoint(checkpoint_path)
 
     print("Training and Evaluating ViT Model on Gestalt Patterns...")
     results = {}
@@ -118,7 +130,7 @@ def run_vit(data_path, device):
         for pattern_folder in pattern_folders:
             train_loader, num_train_images = get_dataloader(pattern_folder)
             wandb.log({f"{principle}/num_train_images": num_train_images})
-            train_vit(model, train_loader, device)
+            train_vit(model, train_loader, device, checkpoint_path)
 
             torch.cuda.empty_cache()
 
@@ -148,6 +160,7 @@ def run_vit(data_path, device):
         json.dump(results, json_file, indent=4)
 
     print("Training and evaluation complete. Results saved to evaluation_results.json.")
+    model.save_checkpoint(checkpoint_path)
     wandb.finish()
 
 
@@ -158,4 +171,5 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_vit(config.raw_patterns, device)
+
 
