@@ -66,7 +66,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     for image, label in test_images:
         prompt = f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
 
-        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+        inputs = processor(images=[image], text=prompt, return_tensors="pt").to(device)
 
         if "input_ids" not in inputs:
             print("Warning: input_ids not generated correctly for image.")
