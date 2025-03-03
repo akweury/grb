@@ -1,5 +1,6 @@
 # Created by jing at 26.02.25
 import torch
+import os
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
@@ -13,13 +14,12 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 from scripts import config
 
-torch.set_num_threads(64)
 # Configuration
-BATCH_SIZE = 16  # Reduce batch size dynamically
+BATCH_SIZE = 64  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
-ACCUMULATION_STEPS = 2  # Gradient accumulation steps
+ACCUMULATION_STEPS = 1  # Reduce accumulation steps for faster updates  # Gradient accumulation steps
 
 # Initialize Weights & Biases (WandB)
 wandb.init(project="ViT-Gestalt-Patterns", config={
@@ -30,15 +30,15 @@ wandb.init(project="ViT-Gestalt-Patterns", config={
 })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=4, pin_memory=False):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=8, pin_memory=True, prefetch_factor=2):
     transform = transforms.Compose([
-        transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
+        transforms.Resize(256), transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
     return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory,
-                      persistent_workers=True), len(dataset)
+                      prefetch_factor=prefetch_factor, persistent_workers=False), len(dataset)
 
 
 # Load Pretrained ViT Model
@@ -56,6 +56,7 @@ class ViTClassifier(nn.Module):
     def __init__(self, num_classes=NUM_CLASSES):
         super(ViTClassifier, self).__init__()
         self.model = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=num_classes)
+        self.model.set_grad_checkpointing(True)  # Enable gradient checkpointing
 
     def forward(self, x):
         return self.model(x)
@@ -64,8 +65,8 @@ class ViTClassifier(nn.Module):
 # Training Function
 def train_vit(model, train_loader, device, checkpoint_path):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)
-    scaler = torch.cuda.amp.GradScaler()
+    optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=5e-5, betas=(0.9, 0.999))  # Faster convergence
+    scaler = torch.cuda.amp.GradScaler(enabled=True)  # Ensure AMP is enabled
     model.train()
 
     for epoch in range(EPOCHS):
@@ -114,7 +115,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
 def run_vit(data_path, device):
     checkpoint_path = Path(data_path) / "vit_checkpoint.pth"
     device = torch.device(device)
-    model = ViTClassifier().to(device)
+    model = ViTClassifier().to(device, memory_format=torch.channels_last)
     model.load_checkpoint(checkpoint_path)
 
     print("Training and Evaluating ViT Model on Gestalt Patterns...")
@@ -164,6 +165,12 @@ def run_vit(data_path, device):
     model.save_checkpoint(checkpoint_path)
     wandb.finish()
 
+
+torch.set_num_threads(torch.get_num_threads())  # Utilize all available threads efficiently
+os.environ['OMP_NUM_THREADS'] = str(torch.get_num_threads())  # Limit OpenMP threads
+os.environ['MKL_NUM_THREADS'] = str(torch.get_num_threads())  # Limit MKL threads
+
+torch.backends.cudnn.benchmark = True  # Optimize cuDNN for fixed image size
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train and evaluate ViT model with CUDA support.")
