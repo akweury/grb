@@ -67,7 +67,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
         prompt = (f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
                   f"Only answer with positive and negative.")
 
-        image_inputs = processor(images=[image], return_tensors="pt").to(device)
+        image_inputs = processor(images=image, return_tensors="pt").to(device)
         text_inputs = processor(text=prompt, return_tensors="pt").to(device)
 
         inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
