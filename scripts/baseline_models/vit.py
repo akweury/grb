@@ -75,7 +75,7 @@ def train_vit(model, train_loader, device, checkpoint_path):
         optimizer.zero_grad()
         for step, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
-            with torch.amp.autocast(device):
+            with torch.amp.autocast(str(device)):
                 outputs = model(images)
                 loss = criterion(outputs, labels) / ACCUMULATION_STEPS
 
