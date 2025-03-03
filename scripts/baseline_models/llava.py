@@ -79,7 +79,7 @@ def run_llava(data_path, principle, batch_size, device):
     init_wandb(batch_size)
 
     model, processor = load_llava_model(device)
-    principle_path = Path(data_path) / principle
+    principle_path = Path(data_path)
 
     pattern_folders = sorted((principle_path / "train").iterdir())
     if not pattern_folders:
