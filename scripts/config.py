@@ -33,9 +33,9 @@ if not os.path.exists(raw_patterns):
     os.makedirs(raw_patterns)
 
 # -------------- llm path -----------------------
-llm_path = data/"llm_pretrained"
-if not os.path.exists(llm_path):
-    os.makedirs(llm_path)
+cache_model_path = data/"llm_pretrained"
+if not os.path.exists(cache_model_path):
+    os.makedirs(cache_model_path)
 # -------------- scripts path -----------------------
 scripts = root / 'scripts'
 if not os.path.exists(scripts):

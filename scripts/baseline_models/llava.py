@@ -17,9 +17,13 @@ def init_wandb(batch_size):
 
 # Load LLaVA model
 def load_llava_model(device):
-    model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf").to(device)
+    model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf")
     processor = LlavaProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
-    return model, processor
+
+    model.save_pretrained(config.cache_model_path)
+    processor.save_pretrained(config.cache_model_path)
+
+    return model.to(device), processor
 
 
 def get_dataloader(data_dir, batch_size, num_workers=2):
@@ -94,18 +98,21 @@ def run_llava(data_path, principle, batch_size, device):
 
     # Load training samples
     train_loader, train_dataset = get_dataloader(principle_path, batch_size)
-    positive_samples = [Path(img[0]).name for img in train_dataset.imgs if img[1] == 1][:4]
-    negative_samples = [Path(img[0]).name for img in train_dataset.imgs if img[1] == 0][:4]
+    positive_samples = [Path(img[0]).name for img in train_dataset.imgs if img[1] == 1][:5]
+    negative_samples = [Path(img[0]).name for img in train_dataset.imgs if img[1] == 0][:5]
 
     reasoning_prompt = generate_reasoning_prompt(positive_samples, negative_samples, principle)
     print("Generated reasoning prompt:\n", reasoning_prompt)
 
     # Evaluate on test set
-    test_loader, _ = get_dataloader(test_path, batch_size)
+    test_loader, test_dataset = get_dataloader(test_path, batch_size)
+    test_samples = test_dataset.imgs[:5]  # Select first 5 test samples
+    test_loader = DataLoader(test_samples, batch_size=batch_size, shuffle=False)
+
     accuracy, f1 = evaluate_llm(model, processor, test_loader, device, principle)
 
     results = {"principle": principle, "accuracy": accuracy, "f1_score": f1}
-    results_path = Path(data_path) / f"evaluation_results_llava.json"
+    results_path = Path(data_path) / "evaluation_results.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 
