@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 from scripts import config
 
-torch.set_num_threads(128)
+torch.set_num_threads(64)
 # Configuration
 BATCH_SIZE = 16  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
@@ -30,7 +30,7 @@ wandb.init(project="ViT-Gestalt-Patterns", config={
 })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=8, pin_memory=False):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=4, pin_memory=False):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor(),
