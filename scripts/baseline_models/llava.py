@@ -55,7 +55,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
     print(f"logic input:{inputs}")
     print(inputs["pixel_values"].shape)  # Should be (batch_size, 3, H, W)
-    outputs = model.generate(**inputs, max_new_tokens=1000)
+    outputs = model.generate(**inputs)
     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
     print(f"Inferred rules for {principle}: {logic_rules}")
     return logic_rules
