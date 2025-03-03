@@ -66,7 +66,7 @@ class ViTClassifier(nn.Module):
 def train_vit(model, train_loader, device, checkpoint_path):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=5e-5, betas=(0.9, 0.999))  # Faster convergence
-    scaler = torch.cuda.amp.GradScaler(enabled=True)  # Ensure AMP is enabled
+    scaler = torch.amp.GradScaler(device='cuda')  # Ensure AMP is enabled
     model.train()
 
     for epoch in range(EPOCHS):
