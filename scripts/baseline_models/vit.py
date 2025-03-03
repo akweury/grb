@@ -15,7 +15,7 @@ from scripts import config
 
 torch.set_num_threads(128)
 # Configuration
-BATCH_SIZE = 32  # Reduce batch size dynamically
+BATCH_SIZE = 16  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
