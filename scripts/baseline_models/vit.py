@@ -13,10 +13,11 @@ from torch.utils.data import DataLoader
 from scripts import config
 
 # Configuration
-BATCH_SIZE = 64  # Increase batch size to utilize GPU better
+BATCH_SIZE = 32  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
+ACCUMULATION_STEPS = 2  # Gradient accumulation steps
 
 # Initialize Weights & Biases (WandB)
 wandb.init(project="ViT-Gestalt-Patterns", config={
@@ -27,7 +28,7 @@ wandb.init(project="ViT-Gestalt-Patterns", config={
 })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=4, pin_memory=True):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=2, pin_memory=False):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor(),
@@ -51,22 +52,25 @@ class ViTClassifier(nn.Module):
 # Training Function
 def train_vit(model, train_loader, device):
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)  # AdamW for better GPU utilization
-    scaler = torch.cuda.amp.GradScaler()  # Enable mixed precision training
+    optimizer = optim.AdamW(model.parameters(), lr=0.0005, weight_decay=1e-4)
+    scaler = torch.cuda.amp.GradScaler()
     model.train()
 
     for epoch in range(EPOCHS):
-        for images, labels in train_loader:
+        optimizer.zero_grad()
+        for step, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
-            optimizer.zero_grad()
-
-            with torch.cuda.amp.autocast():  # Mixed precision
+            with torch.cuda.amp.autocast():
                 outputs = model(images)
-                loss = criterion(outputs, labels)
+                loss = criterion(outputs, labels) / ACCUMULATION_STEPS
 
             scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+
+            if (step + 1) % ACCUMULATION_STEPS == 0:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+                torch.cuda.empty_cache()
 
 
 # Evaluation Function
@@ -106,12 +110,16 @@ def run_vit(data_path, device):
             wandb.log({f"{principle}/num_train_images": num_train_images})
             train_vit(model, train_loader, device)
 
+            torch.cuda.empty_cache()
+
             test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
             if test_folder.exists():
                 test_loader, _ = get_dataloader(test_folder)
                 accuracy = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
                 results[principle][pattern_folder.stem] = accuracy
                 total_accuracy.append(accuracy)
+
+                torch.cuda.empty_cache()
 
     avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
     wandb.log({"average_test_accuracy": avg_accuracy})
@@ -133,3 +141,4 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_vit(config.raw_patterns, device)
+
