@@ -166,9 +166,9 @@ def run_vit(data_path, device):
     wandb.finish()
 
 
-torch.set_num_threads(torch.get_num_threads())  # Utilize all available threads efficiently
-os.environ['OMP_NUM_THREADS'] = str(torch.get_num_threads())  # Limit OpenMP threads
-os.environ['MKL_NUM_THREADS'] = str(torch.get_num_threads())  # Limit MKL threads
+torch.set_num_threads(64)  # Utilize all available threads efficiently
+os.environ['OMP_NUM_THREADS'] = str(64)  # Limit OpenMP threads
+os.environ['MKL_NUM_THREADS'] = str(64)  # Limit MKL threads
 
 torch.backends.cudnn.benchmark = True  # Optimize cuDNN for fixed image size
 
