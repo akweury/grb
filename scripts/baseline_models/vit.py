@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import f1_score
 from scripts import config
 
+torch.set_num_threads(128)
 # Configuration
 BATCH_SIZE = 32  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
@@ -29,7 +30,7 @@ wandb.init(project="ViT-Gestalt-Patterns", config={
 })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=0, pin_memory=False):
+def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=8, pin_memory=False):
     transform = transforms.Compose([
         transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
         transforms.ToTensor(),
@@ -171,5 +172,3 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_vit(config.raw_patterns, device)
-
-
