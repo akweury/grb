@@ -7,7 +7,8 @@ from pathlib import Path
 from transformers import LlavaForConditionalGeneration, LlavaProcessor
 from scripts import config
 from torch.utils.data import DataLoader
-from torchvision import transforms, datasets
+from torchvision import transforms
+from PIL import Image
 from sklearn.metrics import f1_score
 
 
@@ -26,15 +27,9 @@ def load_llava_model(device):
     return model.to(device), processor
 
 
-def get_dataloader(data_dir, batch_size, num_workers=2):
-    transform = transforms.Compose([
-        transforms.Resize(256),
-        transforms.CenterCrop(224),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-    ])
-    dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers), dataset
+def load_images(image_dir, num_samples=5):
+    image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
+    return [Image.open(img_path).convert("RGB") for img_path in image_paths]
 
 
 def generate_reasoning_prompt(positive_examples, negative_examples, principle):
@@ -53,30 +48,25 @@ def generate_reasoning_prompt(positive_examples, negative_examples, principle):
     return prompt
 
 
-def evaluate_llm(model, processor, test_loader, device, principle):
+def evaluate_llm(model, processor, test_images, device, principle):
     model.eval()
     correct, total = 0, 0
     all_labels, all_predictions = [], []
 
-    for images, labels in test_loader:
-        images = images.to(device)
+    for image, label in test_images:
+        inputs = processor(image, return_tensors="pt").to(device)
+        prompt = f"Based on the given reasoning rule, classify this image as Positive or Negative."
+        inputs["input_ids"] = processor.tokenizer(prompt, return_tensors="pt")["input_ids"].to(device)
 
-        for i in range(images.shape[0]):
-            image = images[i].unsqueeze(0)
-            inputs = processor(image, return_tensors="pt").to(device)
+        outputs = model.generate(**inputs, max_length=50)
+        prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-            prompt = f"Based on the given reasoning rule, classify this image as Positive or Negative."
-            inputs["input_ids"] = processor.tokenizer(prompt, return_tensors="pt")["input_ids"].to(device)
+        predicted_label = 1 if "Positive" in prediction else 0
+        all_labels.append(label)
+        all_predictions.append(predicted_label)
 
-            outputs = model.generate(**inputs, max_length=50)
-            prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-            predicted_label = 1 if "Positive" in prediction else 0
-            all_labels.append(labels[i].item())
-            all_predictions.append(predicted_label)
-
-            total += 1
-            correct += (predicted_label == labels[i].item())
+        total += 1
+        correct += (predicted_label == label)
 
     accuracy = 100 * correct / total
     f1 = f1_score(all_labels, all_predictions, average='macro')
@@ -89,36 +79,45 @@ def run_llava(data_path, principle, batch_size, device):
     init_wandb(batch_size)
 
     model, processor = load_llava_model(device)
-    principle_path = Path(data_path) / "train"
-    test_path = Path(data_path) / "test"
+    principle_path = Path(data_path) / principle
 
-    if not principle_path.exists() or not test_path.exists():
-        print("Training or test data missing for principle:", principle)
+    pattern_folders = sorted((principle_path / "train").iterdir())
+    if not pattern_folders:
+        print("No pattern folders found in", principle_path)
         return
 
-    # Load training samples
-    train_loader, train_dataset = get_dataloader(principle_path, batch_size)
-    positive_samples = [Path(img[0]).name for img in train_dataset.imgs if img[1] == 1][:5]
-    negative_samples = [Path(img[0]).name for img in train_dataset.imgs if img[1] == 0][:5]
+    total_accuracy, total_f1 = [], []
+    results = {}
 
-    reasoning_prompt = generate_reasoning_prompt(positive_samples, negative_samples, principle)
-    print("Generated reasoning prompt:\n", reasoning_prompt)
+    for pattern_folder in pattern_folders:
+        train_positive = load_images(pattern_folder / "positive")
+        train_negative = load_images(pattern_folder / "negative")
+        test_positive = load_images((principle_path / "test" / pattern_folder.name) / "positive")
+        test_negative = load_images((principle_path / "test" / pattern_folder.name) / "negative")
 
-    # Evaluate on test set
-    test_loader, test_dataset = get_dataloader(test_path, batch_size)
-    test_samples = test_dataset.imgs[:5]  # Select first 5 test samples
-    test_loader = DataLoader(test_samples, batch_size=batch_size, shuffle=False)
+        reasoning_prompt = generate_reasoning_prompt([str(p) for p in train_positive], [str(n) for n in train_negative],
+                                                     principle)
+        print("Generated reasoning prompt for", pattern_folder.name, ":\n", reasoning_prompt)
 
-    accuracy, f1 = evaluate_llm(model, processor, test_loader, device, principle)
+        test_images = [(img, 1) for img in test_positive] + [(img, 0) for img in test_negative]
+        accuracy, f1 = evaluate_llm(model, processor, test_images, device, principle)
 
-    results = {"principle": principle, "accuracy": accuracy, "f1_score": f1}
+        results[pattern_folder.name] = {"accuracy": accuracy, "f1_score": f1}
+        total_accuracy.append(accuracy)
+        total_f1.append(f1)
+
+    avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
+    avg_f1 = sum(total_f1) / len(total_f1) if total_f1 else 0
+
+    results["average"] = {"accuracy": avg_accuracy, "f1_score": avg_f1}
     results_path = Path(data_path) / "evaluation_results.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 
     print("Evaluation complete. Results saved to evaluation_results.json.")
+    print(f"Overall Average Accuracy: {avg_accuracy:.2f}% | Average F1 Score: {avg_f1:.4f}")
     wandb.finish()
-    return accuracy, f1
+    return avg_accuracy, avg_f1
 
 
 if __name__ == "__main__":
@@ -128,3 +127,4 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_llava(config.raw_patterns, "proximity", 2, device)
+
