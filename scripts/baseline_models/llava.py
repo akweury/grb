@@ -68,7 +68,8 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     def single_turn(model_input_text, image):
         # Combine context + new user prompt
         full_prompt = conversation_context + "\n\nUser: " + model_input_text
-
+        print(f"prompt: {full_prompt}")
+        print(f"image: {image}")
         # Process with LLaVA
         inputs = processor(
             text=full_prompt,
