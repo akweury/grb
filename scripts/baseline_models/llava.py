@@ -51,7 +51,7 @@ def generate_reasoning_prompt(positive_examples, negative_examples, principle):
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
     prompt = generate_reasoning_prompt([p[1] for p in train_positive], [n[1] for n in train_negative], principle)
     inputs = processor(text=prompt, return_tensors="pt").to(device)
-
+    print(f"logic input:{inputs}")
     outputs = model.generate(**inputs, max_new_tokens=1000)
     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
     print(f"Inferred rules for {principle}: {logic_rules}")
@@ -76,7 +76,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
         # if "input_ids" not in inputs:
         #     print("Warning: input_ids not generated correctly for image.")
         #     continue
-
+        print(f"eval inputs:{inputs}")
         outputs = model.generate(**inputs)
         prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
