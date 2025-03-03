@@ -15,22 +15,24 @@ from sklearn.metrics import f1_score
 from scripts import config
 
 # Configuration
-BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
+# BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
 ACCUMULATION_STEPS = 1  # Reduce accumulation steps for faster updates  # Gradient accumulation steps
 
-# Initialize Weights & Biases (WandB)
-wandb.init(project="ViT-Gestalt-Patterns", config={
-    "batch_size": BATCH_SIZE,
-    "image_size": IMAGE_SIZE,
-    "num_classes": NUM_CLASSES,
-    "epochs": EPOCHS
-})
+
+def init_wandb(batch_size):
+    # Initialize Weights & Biases (WandB)
+    wandb.init(project="ViT-Gestalt-Patterns", config={
+        "batch_size": batch_size,
+        "image_size": IMAGE_SIZE,
+        "num_classes": NUM_CLASSES,
+        "epochs": EPOCHS
+    })
 
 
-def get_dataloader(data_dir, batch_size=BATCH_SIZE, num_workers=2, pin_memory=True, prefetch_factor=None):
+def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetch_factor=None):
     transform = transforms.Compose([
         transforms.Resize(256), transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
@@ -112,7 +114,9 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     return accuracy, f1
 
 
-def run_vit(data_path, principle, device):
+def run_vit(data_path, principle, batch_size, device):
+    init_wandb(batch_size)
+
     checkpoint_path = Path(data_path) / "vit_checkpoint.pth"
     device = torch.device(device)
     model = ViTClassifier().to(device, memory_format=torch.channels_last)
@@ -129,7 +133,7 @@ def run_vit(data_path, principle, device):
     pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
 
     for pattern_folder in pattern_folders:
-        train_loader, num_train_images = get_dataloader(pattern_folder)
+        train_loader, num_train_images = get_dataloader(pattern_folder, batch_size)
         wandb.log({f"{principle}/num_train_images": num_train_images})
         train_vit(model, train_loader, device, checkpoint_path)
 
@@ -137,7 +141,7 @@ def run_vit(data_path, principle, device):
 
         test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
         if test_folder.exists():
-            test_loader, _ = get_dataloader(test_folder)
+            test_loader, _ = get_dataloader(test_folder, batch_size)
             accuracy, f1 = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
             results[principle][pattern_folder.stem] = {"accuracy": accuracy, "f1_score": f1}
             total_accuracy.append(accuracy)
