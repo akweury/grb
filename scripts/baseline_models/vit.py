@@ -15,7 +15,7 @@ from sklearn.metrics import f1_score
 from scripts import config
 
 # Configuration
-BATCH_SIZE = 2  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
+BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
@@ -73,7 +73,7 @@ def train_vit(model, train_loader, device, checkpoint_path):
         optimizer.zero_grad()
         for step, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
-            with torch.cuda.amp.autocast():
+            with torch.amp.autocast(device):
                 outputs = model(images)
                 loss = criterion(outputs, labels) / ACCUMULATION_STEPS
 
