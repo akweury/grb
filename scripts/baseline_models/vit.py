@@ -112,7 +112,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     return accuracy, f1
 
 
-def run_vit(data_path, device):
+def run_vit(data_path, principle, device):
     checkpoint_path = Path(data_path) / "vit_checkpoint.pth"
     device = torch.device(device)
     model = ViTClassifier().to(device, memory_format=torch.channels_last)
@@ -121,39 +121,37 @@ def run_vit(data_path, device):
     print("Training and Evaluating ViT Model on Gestalt Patterns...")
     results = {}
     total_accuracy = []
-    total_f1_scores = {principle: [] for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]}
+    total_f1_scores = []
 
-    for principle in total_f1_scores.keys():
-        principle_path = Path(data_path) / principle
-        results[principle] = {}
+    principle_path = Path(data_path) / principle
+    results[principle] = {}
 
-        pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
+    pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
 
-        for pattern_folder in pattern_folders:
-            train_loader, num_train_images = get_dataloader(pattern_folder)
-            wandb.log({f"{principle}/num_train_images": num_train_images})
-            train_vit(model, train_loader, device, checkpoint_path)
+    for pattern_folder in pattern_folders:
+        train_loader, num_train_images = get_dataloader(pattern_folder)
+        wandb.log({f"{principle}/num_train_images": num_train_images})
+        train_vit(model, train_loader, device, checkpoint_path)
+
+        torch.cuda.empty_cache()
+
+        test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
+        if test_folder.exists():
+            test_loader, _ = get_dataloader(test_folder)
+            accuracy, f1 = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
+            results[principle][pattern_folder.stem] = {"accuracy": accuracy, "f1_score": f1}
+            total_accuracy.append(accuracy)
+            total_f1_scores.append(f1)
 
             torch.cuda.empty_cache()
 
-            test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
-            if test_folder.exists():
-                test_loader, _ = get_dataloader(test_folder)
-                accuracy, f1 = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
-                results[principle][pattern_folder.stem] = {"accuracy": accuracy, "f1_score": f1}
-                total_accuracy.append(accuracy)
-                total_f1_scores[principle].append(f1)
-
-                torch.cuda.empty_cache()
-
     # Compute average F1 score per principle
-    avg_f1_scores = {principle: sum(scores) / len(scores) if scores else 0 for principle, scores in
-                     total_f1_scores.items()}
-    wandb.log({"average_f1_scores": avg_f1_scores})
-    print(f"Average F1 Scores per Principle: {avg_f1_scores}")
+    avg_f1_scores = sum(total_f1_scores) / len(total_f1_scores) if total_f1_scores else 0
+    wandb.log({f"average_f1_scores_{principle}": avg_f1_scores})
+    print(f"Average F1 Scores of Principle {principle}: {avg_f1_scores}")
 
     avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
-    wandb.log({"average_test_accuracy": avg_accuracy})
+    wandb.log({f"average_test_accuracy_{principle}": avg_accuracy})
     print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
 
     # Save results to JSON file
@@ -178,4 +176,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
-    run_vit(config.raw_patterns, device)
+    run_vit(config.raw_patterns, "proximity", device)
