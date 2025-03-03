@@ -105,7 +105,7 @@ def run_llava(data_path, principle, batch_size, device):
     accuracy, f1 = evaluate_llm(model, processor, test_loader, device, principle)
 
     results = {"principle": principle, "accuracy": accuracy, "f1_score": f1}
-    results_path = Path(data_path) / "evaluation_results.json"
+    results_path = Path(data_path) / f"evaluation_results_llava.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 

@@ -159,7 +159,7 @@ def run_vit(data_path, principle, batch_size, device):
     print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
 
     # Save results to JSON file
-    results_path = Path(data_path) / "evaluation_results.json"
+    results_path = Path(data_path) / "evaluation_results_vit.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 
