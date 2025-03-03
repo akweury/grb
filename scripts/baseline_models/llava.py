@@ -89,8 +89,8 @@ def run_llava(data_path, principle, batch_size, device):
     init_wandb(batch_size)
 
     model, processor = load_llava_model(device)
-    principle_path = Path(data_path) / "train" / principle
-    test_path = Path(data_path) / "test" / principle
+    principle_path = Path(data_path) / "train"
+    test_path = Path(data_path) / "test"
 
     if not principle_path.exists() or not test_path.exists():
         print("Training or test data missing for principle:", principle)
