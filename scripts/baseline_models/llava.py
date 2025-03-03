@@ -29,28 +29,28 @@ def load_llava_model(device):
 
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
-    return [(Image.open(img_path).convert("RGB"), img_path.name) for img_path in image_paths]
+    return [(Image.open(img_path).convert("RGB").resize((224, 224)), img_path.name) for img_path in image_paths]
 
 
-def generate_reasoning_prompt(positive_examples, negative_examples, principle):
+def generate_reasoning_prompt(principle):
     prompt = f"""You are an AI reasoning about visual patterns based on Gestalt principles.
     You are given positive and negative examples and must deduce the common logic that differentiates them.
 
     Principle: {principle}
 
     Positive examples:
-    {', '.join(positive_examples)}
+    first half images.
 
     Negative examples:
-    {', '.join(negative_examples)}
+    second half images.
 
     What logical rule differentiates the positive from the negative examples?"""
     return prompt
 
 
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
-    prompt = generate_reasoning_prompt([p[1] for p in train_positive], [n[1] for n in train_negative], principle)
-    inputs = processor(text=prompt, return_tensors="pt").to(device)
+    prompt = generate_reasoning_prompt(principle)
+    inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
     print(f"logic input:{inputs}")
     outputs = model.generate(**inputs, max_new_tokens=1000)
     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -68,7 +68,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
                   f"Only answer with positive and negative.")
         print(f"image type")
         print(type(image))
-        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+        inputs = processor(images=[image], text=prompt, return_tensors="pt").to(device)
         # text_inputs = processor(text=prompt, return_tensors="pt").to(device)
 
         # inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
