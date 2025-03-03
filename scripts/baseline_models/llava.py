@@ -29,7 +29,7 @@ def load_llava_model(device):
 
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
-    return [(Image.open(img_path).convert("RGB").resize((224, 224)), img_path.name) for img_path in image_paths]
+    return [Image.open(img_path).convert("RGB").resize((224, 224)) for img_path in image_paths]
 
 
 def generate_reasoning_prompt(principle):
@@ -119,7 +119,7 @@ def run_llava(data_path, principle, batch_size, device):
 
         logic_rules = infer_logic_rules(model, processor, train_positive, train_negative, device, principle)
 
-        test_images = [(img, 1) for img, _ in test_positive] + [(img, 0) for img, _ in test_negative]
+        test_images = [(img, 1) for img in test_positive] + [(img, 0) for img in test_negative]
         accuracy, f1 = evaluate_llm(model, processor, test_images, logic_rules, device, principle)
 
         results[pattern_folder.name] = {"accuracy": accuracy, "f1_score": f1, "logic_rules": logic_rules}
