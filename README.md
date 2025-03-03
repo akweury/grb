@@ -180,8 +180,10 @@ For GPU-accelerated training (if available):
 docker run --gpus all -it -v /home/ml-jsha/storage/grb:/app/data --rm gestalt_benchmark 
 
 python -m scripts.main
+python -m scripts.evaluate_models --device_id 3
 python -m scripts.evaluate_models --device_id 4
 python -m scripts.baseline_models.llm_llama3 --device_id 4
+python -m scripts.baseline_models.llm_llama3 --device_id 3
  
 ```
 

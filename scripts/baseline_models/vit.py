@@ -10,6 +10,7 @@ import json
 import wandb
 from pathlib import Path
 from torch.utils.data import DataLoader
+from sklearn.metrics import f1_score
 from scripts import config
 
 # Configuration
@@ -77,18 +78,26 @@ def train_vit(model, train_loader, device):
 def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
     correct, total = 0, 0
+    all_labels = []
+    all_predictions = []
     with torch.no_grad():
         for images, labels in test_loader:
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             outputs = model(images)
             predicted = torch.argmax(outputs, dim=1)
+
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predicted.cpu().numpy())
+
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
     accuracy = 100 * correct / total
-    wandb.log({f"{principle}/test_accuracy": accuracy})
-    print(f"Test Accuracy for {pattern_name}: {accuracy:.2f}%")
-    return accuracy
+    f1 = f1_score(all_labels, all_predictions, average='macro')
+
+    wandb.log({f"{principle}/test_accuracy": accuracy, f"{principle}/f1_score": f1})
+    print(f"Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f}")
+    return accuracy, f1
 
 
 def run_vit(data_path, device):
@@ -98,8 +107,9 @@ def run_vit(data_path, device):
     print("Training and Evaluating ViT Model on Gestalt Patterns...")
     results = {}
     total_accuracy = []
+    total_f1_scores = {principle: [] for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]}
 
-    for principle in ["proximity", "similarity", "closure", "symmetry", "continuity"]:
+    for principle in total_f1_scores.keys():
         principle_path = Path(data_path) / principle
         results[principle] = {}
 
@@ -115,11 +125,18 @@ def run_vit(data_path, device):
             test_folder = Path(data_path) / principle / "test" / pattern_folder.stem
             if test_folder.exists():
                 test_loader, _ = get_dataloader(test_folder)
-                accuracy = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
-                results[principle][pattern_folder.stem] = accuracy
+                accuracy, f1 = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
+                results[principle][pattern_folder.stem] = {"accuracy": accuracy, "f1_score": f1}
                 total_accuracy.append(accuracy)
+                total_f1_scores[principle].append(f1)
 
                 torch.cuda.empty_cache()
+
+    # Compute average F1 score per principle
+    avg_f1_scores = {principle: sum(scores) / len(scores) if scores else 0 for principle, scores in
+                     total_f1_scores.items()}
+    wandb.log({"average_f1_scores": avg_f1_scores})
+    print(f"Average F1 Scores per Principle: {avg_f1_scores}")
 
     avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
     wandb.log({"average_test_accuracy": avg_accuracy})
