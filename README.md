@@ -183,8 +183,8 @@ python -m scripts.main
 python -m scripts.evaluate_models --batch_size 32 --principle proximity --device_id 3
 python -m scripts.evaluate_models --batch_size 32 --principle similarity --device_id 2
 python -m scripts.evaluate_models --batch_size 32 --principle closure --device_id 3
-python -m scripts.evaluate_models --batch_size 32 --principle symmetry --device_id 2
-python -m scripts.evaluate_models --batch_size 32 --principle continuity --device_id 2
+python -m scripts.evaluate_models --batch_size 32 --principle symmetry --device_id 5
+python -m scripts.evaluate_models --batch_size 50 --principle continuity --device_id 6
 python -m scripts.evaluate_models --device_id 4
 python -m scripts.baseline_models.llm_llama3 --device_id 4
 python -m scripts.baseline_models.llm_llama3 --device_id 3

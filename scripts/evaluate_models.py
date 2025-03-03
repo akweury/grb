@@ -2,12 +2,14 @@
 import argparse
 from scripts import config
 from scripts.baseline_models import vit
+from scripts.baseline_models import llava
 import torch
 import os
 
 # List of baseline models
 baseline_models = [
-    {"name": "ViT", "module": vit.run_vit}
+    # {"name": "ViT", "module": vit.run_vit},
+    {"name": "Llava", "module": llava.run_llava}
 ]
 
 
