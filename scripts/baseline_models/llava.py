@@ -66,20 +66,21 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     for image, label in test_images:
         prompt = (f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
                   f"Only answer with positive and negative.")
+        print(f"image type")
+        print(type(image))
+        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+        # text_inputs = processor(text=prompt, return_tensors="pt").to(device)
 
-        image_inputs = processor(images=image, return_tensors="pt").to(device)
-        text_inputs = processor(text=prompt, return_tensors="pt").to(device)
+        # inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
 
-        inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
+        # if "input_ids" not in inputs:
+        #     print("Warning: input_ids not generated correctly for image.")
+        #     continue
 
-        if "input_ids" not in inputs:
-            print("Warning: input_ids not generated correctly for image.")
-            continue
-
-        outputs = model.generate(**inputs, max_new_tokens=1000)
+        outputs = model.generate(**inputs)
         prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-        predicted_label = 1 if "Positive" in prediction else 0
+        predicted_label = 1 if "positive" in prediction else 0
         all_labels.append(label)
         all_predictions.append(predicted_label)
 
@@ -144,4 +145,3 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_llava(config.raw_patterns, "proximity", 2, device)
-
