@@ -29,7 +29,7 @@ def load_llava_model(device):
 
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
-    return [Image.open(img_path).convert("RGB") for img_path in image_paths]
+    return [(Image.open(img_path).convert("RGB"), img_path.name) for img_path in image_paths]
 
 
 def generate_reasoning_prompt(positive_examples, negative_examples, principle):
@@ -48,15 +48,29 @@ def generate_reasoning_prompt(positive_examples, negative_examples, principle):
     return prompt
 
 
-def evaluate_llm(model, processor, test_images, device, principle):
+def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
+    prompt = generate_reasoning_prompt([p[1] for p in train_positive], [n[1] for n in train_negative], principle)
+    inputs = processor(text=prompt, return_tensors="pt").to(device)
+
+    outputs = model.generate(**inputs, max_length=100)
+    logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+    print(f"Inferred rules for {principle}: {logic_rules}")
+    return logic_rules
+
+
+def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     model.eval()
     correct, total = 0, 0
     all_labels, all_predictions = [], []
 
     for image, label in test_images:
-        inputs = processor(image, return_tensors="pt").to(device)
-        prompt = f"Based on the given reasoning rule, classify this image as Positive or Negative."
-        inputs["input_ids"] = processor.tokenizer(prompt, return_tensors="pt")["input_ids"].to(device)
+        prompt = f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
+
+        inputs = processor(images=image, text=prompt, return_tensors="pt").to(device)
+
+        if "input_ids" not in inputs:
+            print("Warning: input_ids not generated correctly for image.")
+            continue
 
         outputs = model.generate(**inputs, max_length=50)
         prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
@@ -68,8 +82,9 @@ def evaluate_llm(model, processor, test_images, device, principle):
         total += 1
         correct += (predicted_label == label)
 
-    accuracy = 100 * correct / total
-    f1 = f1_score(all_labels, all_predictions, average='macro')
+    accuracy = 100 * correct / total if total > 0 else 0
+    f1 = f1_score(all_labels, all_predictions, average='macro') if total > 0 else 0
+
     wandb.log({f"{principle}/test_accuracy": accuracy, f"{principle}/f1_score": f1})
     print(f"({principle}) Test Accuracy: {accuracy:.2f}% | F1 Score: {f1:.4f}")
     return accuracy, f1
@@ -95,14 +110,12 @@ def run_llava(data_path, principle, batch_size, device):
         test_positive = load_images((principle_path / "test" / pattern_folder.name) / "positive")
         test_negative = load_images((principle_path / "test" / pattern_folder.name) / "negative")
 
-        reasoning_prompt = generate_reasoning_prompt([str(p) for p in train_positive], [str(n) for n in train_negative],
-                                                     principle)
-        print("Generated reasoning prompt for", pattern_folder.name, ":\n", reasoning_prompt)
+        logic_rules = infer_logic_rules(model, processor, train_positive, train_negative, device, principle)
 
-        test_images = [(img, 1) for img in test_positive] + [(img, 0) for img in test_negative]
-        accuracy, f1 = evaluate_llm(model, processor, test_images, device, principle)
+        test_images = [(img, 1) for img, _ in test_positive] + [(img, 0) for img, _ in test_negative]
+        accuracy, f1 = evaluate_llm(model, processor, test_images, logic_rules, device, principle)
 
-        results[pattern_folder.name] = {"accuracy": accuracy, "f1_score": f1}
+        results[pattern_folder.name] = {"accuracy": accuracy, "f1_score": f1, "logic_rules": logic_rules}
         total_accuracy.append(accuracy)
         total_f1.append(f1)
 
@@ -127,4 +140,3 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_llava(config.raw_patterns, "proximity", 2, device)
-
