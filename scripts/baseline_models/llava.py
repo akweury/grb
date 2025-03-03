@@ -49,31 +49,70 @@ def generate_reasoning_prompt(principle):
 
 
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
-    prompt = generate_reasoning_prompt(principle)
+    """
+    Multi-turn approach: We feed each image individually, accumulating
+    conversation context so the model "remembers" what it has seen so far.
+    """
 
-    # DEBUG: Ensure images are in RGB and not resized manually
-    train_positive = [img.convert("RGB") for img in train_positive]
-    train_negative = [img.convert("RGB") for img in train_negative]
+    # 1) Start with a system-style message explaining the overall goal
+    conversation_context = (
+        f"You are an AI reasoning about visual patterns based on Gestalt principles.\n"
+        f"Principle: {principle}\n\n"
+        f"We have a set of images labeled Positive and a set labeled Negative.\n"
+        f"You will see each image one by one.\n"
+        f"Describe each image, note any pattern features, and keep track of insights.\n"
+        f"After seeing all images, we will derive the logic that differentiates Positive from Negative."
+    )
 
-    # DEBUG: Print input image types
-    print(f"train_positive: {len(train_positive)}, train_negative: {len(train_negative)}")
+    # 2) Function to do a single turn (pass one image + conversation so far)
+    def single_turn(model_input_text, image):
+        # Combine context + new user prompt
+        full_prompt = conversation_context + "\n\nUser: " + model_input_text
 
-    # Process inputs properly
-    inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
+        # Process with LLaVA
+        inputs = processor(
+            text=full_prompt,
+            images=[image],  # pass as list
+            return_tensors="pt"
+        ).to(device)
 
-    # DEBUG: Print input structure
-    print("Inputs before model.generate():")
-    print(inputs.keys())
+        outputs = model.generate(**inputs)
+        answer = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        return answer
 
-    if "pixel_values" not in inputs or inputs["pixel_values"] is None:
-        raise ValueError("Error: pixel_values are missing from inputs!")
+    # 3) Loop over all Positive images
+    for i, img in enumerate(train_positive, start=1):
+        user_prompt = (
+            f"This is Positive image #{i}. "
+            "Describe what you see that might relate to the Gestalt principle."
+        )
+        answer = single_turn(user_prompt, img)
 
-    # Generate response
-    outputs = model.generate(**inputs)
-    logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Append the model's response to conversation (Assistant role)
+        conversation_context += f"\nUser: {user_prompt}\nAssistant: {answer}"
 
-    print(f"Inferred rules for {principle}: {logic_rules}")
-    return logic_rules
+    # 4) Loop over all Negative images
+    for i, img in enumerate(train_negative, start=1):
+        user_prompt = (
+            f"This is Negative image #{i}. "
+            "Describe what you see that might differ from the Positive examples."
+        )
+        answer = single_turn(user_prompt, img)
+
+        conversation_context += f"\nUser: {user_prompt}\nAssistant: {answer}"
+
+    # 5) Final question: "What is the core logic that differentiates Positive vs. Negative?"
+    final_prompt = (
+        "Now we have seen all the Positive and Negative examples. "
+        "Please state the logic/rule that distinguishes them. "
+        "Focus on the Gestalt principle of "
+        f"{principle}."
+    )
+    final_answer = single_turn(final_prompt, train_negative[-1])  # or pass a dummy image if needed
+    conversation_context += f"\nUser: {final_prompt}\nAssistant: {final_answer}"
+
+    print(f"\n=== Final Inferred Rule for {principle} ===\n{final_answer}\n")
+    return final_answer
 
 
 # def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
