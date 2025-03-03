@@ -29,7 +29,7 @@ def load_llava_model(device):
 
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
-    return [Image.open(img_path).convert("RGB").resize((336, 336)) for img_path in image_paths]
+    return [Image.open(img_path).convert("RGB").resize((224, 224)) for img_path in image_paths]
 
 
 def generate_reasoning_prompt(principle):
