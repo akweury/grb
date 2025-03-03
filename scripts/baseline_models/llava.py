@@ -52,7 +52,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     prompt = generate_reasoning_prompt([p[1] for p in train_positive], [n[1] for n in train_negative], principle)
     inputs = processor(text=prompt, return_tensors="pt").to(device)
 
-    outputs = model.generate(**inputs, max_new_tokens=300)
+    outputs = model.generate(**inputs, max_new_tokens=1000)
     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
     print(f"Inferred rules for {principle}: {logic_rules}")
     return logic_rules
@@ -64,15 +64,19 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     all_labels, all_predictions = [], []
 
     for image, label in test_images:
-        prompt = f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
+        prompt = (f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
+                  f"Only answer with positive and negative.")
 
-        inputs = processor(images=[image], text=prompt, return_tensors="pt").to(device)
+        image_inputs = processor(images=[image], return_tensors="pt").to(device)
+        text_inputs = processor(text=prompt, return_tensors="pt").to(device)
+
+        inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
 
         if "input_ids" not in inputs:
             print("Warning: input_ids not generated correctly for image.")
             continue
 
-        outputs = model.generate(**inputs, max_new_tokens=300)
+        outputs = model.generate(**inputs, max_new_tokens=1000)
         prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
         predicted_label = 1 if "Positive" in prediction else 0
@@ -140,3 +144,4 @@ if __name__ == "__main__":
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
     run_llava(config.raw_patterns, "proximity", 2, device)
+
