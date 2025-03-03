@@ -15,7 +15,7 @@ from sklearn.metrics import f1_score
 from scripts import config
 
 # Configuration
-BATCH_SIZE = 64  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
+BATCH_SIZE = 2  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
