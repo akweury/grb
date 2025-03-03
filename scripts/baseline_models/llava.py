@@ -18,8 +18,8 @@ def init_wandb(batch_size):
 
 # Load LLaVA model
 def load_llava_model(device):
-    model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-1.5-7b-hf")
-    processor = LlavaProcessor.from_pretrained("llava-hf/llava-1.5-7b-hf")
+    model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
+    processor = LlavaProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
 
     model.save_pretrained(config.cache_model_path)
     processor.save_pretrained(config.cache_model_path)
