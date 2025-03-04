@@ -22,7 +22,7 @@ def load_llava_model(device):
     processor = AutoProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-7b-si-hf")
     model = LlavaOnevisionForConditionalGeneration.from_pretrained(
         "llava-hf/llava-onevision-qwen2-7b-si-hf",
-        torch_dtype=torch.bfloat16,
+        torch_dtype=torch.float16,
         low_cpu_mem_usage=True,
         device_map=device
     )
@@ -227,4 +227,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
-    run_llava(config.raw_patterns, "proximity", 2, device)
+    run_llava(config.raw_patterns, "proximity", 1, device)
