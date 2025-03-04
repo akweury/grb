@@ -41,8 +41,8 @@ def load_llava_model(device):
             processor.image_processor.patch_size = 14  # typical for CLIP ViT-L/14
 
     # Optionally ensure vision tower is set
-    if model.config.vision_tower is None:
-        model.config.vision_tower = "openai/clip-vit-large-patch14"
+    # if model.config.vision_tower is None:
+    #     model.config.vision_tower = "openai/clip-vit-large-patch14"
     if not hasattr(model.config, "vision_config") or model.config.vision_config is None:
         from transformers import CLIPVisionConfig
         model.config.vision_config = CLIPVisionConfig.from_pretrained("openai/clip-vit-large-patch14")
