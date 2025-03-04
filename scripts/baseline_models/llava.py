@@ -127,7 +127,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     ).to(model.device, torch.float16)
 
     # Generate
-    # print(inputs)
+    print(f"Inputs: {inputs}")
     generate_ids = model.generate(**inputs, max_new_tokens=512)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
     answer = answer[0].split("assistant")[-1]
