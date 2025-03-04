@@ -28,9 +28,9 @@ def init_wandb(batch_size):
 #     return model.to(device), processor
 
 def load_llava_model(device):
-    processor = AutoProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-7b-ov-hf")
+    processor = AutoProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-7b-si-hf")
     model = LlavaOnevisionForConditionalGeneration.from_pretrained(
-        "llava-hf/llava-onevision-qwen2-7b-ov-hf",
+        "llava-hf/llava-onevision-qwen2-7b-si-hf",
         torch_dtype=torch.float16,
         low_cpu_mem_usage=True,
         device_map=device
