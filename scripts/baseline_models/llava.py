@@ -31,7 +31,7 @@ def load_llava_model(device):
 
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
-    return [Image.open(img_path).convert("RGB").resize((128, 128)) for img_path in image_paths]
+    return [Image.open(img_path).convert("RGB").resize((224, 224)) for img_path in image_paths]
 
 
 def generate_reasoning_prompt(principle):
@@ -200,7 +200,7 @@ def run_llava(data_path, principle, batch_size, device):
         train_negative = load_images(pattern_folder / "negative")
         test_positive = load_images((principle_path / "test" / pattern_folder.name) / "positive")
         test_negative = load_images((principle_path / "test" / pattern_folder.name) / "negative")
-
+        print(f"image length: {len(train_positive)}")
         logic_rules = infer_logic_rules(model, processor, train_positive, train_negative, device, principle)
 
         test_images = [(img, 1) for img in test_positive] + [(img, 0) for img in test_negative]
