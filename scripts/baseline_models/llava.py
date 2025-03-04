@@ -27,6 +27,8 @@ def load_llava_model(device):
         low_cpu_mem_usage=True,
         device_map=device
     )
+    model.config.pad_token_id = processor.tokenizer.eos_token_id
+
     return model.to(device), processor
 
 
