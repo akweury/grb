@@ -56,6 +56,9 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     conversation context so the model "remembers" what it has seen so far.
     """
     torch.cuda.empty_cache()
+
+    print(f"Image Sizes: {len(train_positive)}, {len(train_negative)}")
+    print(f"Image Dimension: {train_positive[0].shape}, {train_negative[0].shape}")
     # Prepare a batch of two prompts, where the first one is a multi-turn conversation and the second is not
     conversation = [
         {
