@@ -16,7 +16,7 @@ from scripts import config
 
 # Configuration
 # BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
-IMAGE_SIZE = 224  # ViT default input size
+IMAGE_SIZE = 1024  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
 ACCUMULATION_STEPS = 1  # Reduce accumulation steps for faster updates  # Gradient accumulation steps
@@ -55,9 +55,9 @@ class ViTClassifier(nn.Module):
         else:
             print("No checkpoint found, starting from scratch.")
 
-    def __init__(self, num_classes=NUM_CLASSES):
+    def __init__(self,model_name, num_classes=NUM_CLASSES):
         super(ViTClassifier, self).__init__()
-        self.model = timm.create_model("vit_base_patch16_224", pretrained=True, num_classes=num_classes)
+        self.model = timm.create_model(model_name, pretrained=True, num_classes=num_classes)
         self.model.set_grad_checkpointing(True)  # Enable gradient checkpointing
 
     def forward(self, x):
@@ -116,10 +116,11 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
 
 def run_vit(data_path, principle, batch_size, device):
     init_wandb(batch_size)
-
-    checkpoint_path = Path(data_path) / "vit_checkpoint.pth"
+    # model_name = "vit_base_patch16_224"
+    model_name = "ViT-Base-Patch32-384"
+    checkpoint_path = Path(data_path) / f"{model_name}_checkpoint.pth"
     device = torch.device(device)
-    model = ViTClassifier().to(device, memory_format=torch.channels_last)
+    model = ViTClassifier(model_name).to(device, memory_format=torch.channels_last)
     model.load_checkpoint(checkpoint_path)
 
     print(f"Training and Evaluating ViT Model on Gestalt ({principle}) Patterns...")
@@ -159,7 +160,7 @@ def run_vit(data_path, principle, batch_size, device):
     print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
 
     # Save results to JSON file
-    results_path = Path(data_path) / "evaluation_results_vit.json"
+    results_path = Path(data_path) / f"{model_name}_evaluation_results.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 
