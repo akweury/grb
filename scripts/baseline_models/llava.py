@@ -10,6 +10,7 @@ from sklearn.metrics import f1_score
 from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
 
 
+
 def init_wandb(batch_size):
     wandb.init(project="LLM-Gestalt-Patterns", config={"batch_size": batch_size})
 
@@ -29,9 +30,12 @@ def load_llava_model(device):
     return model.to(device), processor
 
 
+
+
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
     return [Image.open(img_path).convert("RGB").resize((224, 224)) for img_path in image_paths]
+
 
 
 def generate_reasoning_prompt(principle):
@@ -50,15 +54,13 @@ def generate_reasoning_prompt(principle):
     return prompt
 
 
+
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
     """
     Multi-turn approach: We feed each image individually, accumulating
     conversation context so the model "remembers" what it has seen so far.
     """
     torch.cuda.empty_cache()
-
-    print(f"Image Sizes: {len(train_positive)}, {len(train_negative)}")
-    print(f"Image Dimension: {train_positive[0].size}, {train_negative[0].size}")
     # Prepare a batch of two prompts, where the first one is a multi-turn conversation and the second is not
     conversation = [
         {
@@ -121,7 +123,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
 
     ]
     inputs = processor.apply_chat_template(
-        conversation,
+        [conversation],
         add_generation_prompt=True,
         tokenize=True,
         return_dict=True,
@@ -130,11 +132,11 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     ).to(model.device, torch.float16)
 
     # Generate
-    print(f"Inputs: pixel_values: {inputs['pixel_values'].shape}")
+    # print(inputs)
     generate_ids = model.generate(**inputs, max_new_tokens=1024)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
     answer = answer[0].split("assistant")[-1]
-    print(f"Answer: {answer}")
+    # print(f"Answer: {answer}")
     return answer
 
 
@@ -168,7 +170,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
         generate_ids = model.generate(**inputs, max_new_tokens=1024)
         prediction = processor.decode(generate_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
         prediction_label = prediction.split(".assistant")[-1]
-        print(f"Prediction : {prediction_label}\n\n")
+        # print(f"Prediction : {prediction_label}\n\n")
         predicted_label = 1 if "positive" in prediction_label.lower() else 0
         all_labels.append(label)
         all_predictions.append(predicted_label)
@@ -203,7 +205,7 @@ def run_llava(data_path, principle, batch_size, device):
         train_negative = load_images(pattern_folder / "negative")
         test_positive = load_images((principle_path / "test" / pattern_folder.name) / "positive")
         test_negative = load_images((principle_path / "test" / pattern_folder.name) / "negative")
-        print(f"image length: {len(train_positive)}")
+
         logic_rules = infer_logic_rules(model, processor, train_positive, train_negative, device, principle)
 
         test_images = [(img, 1) for img in test_positive] + [(img, 0) for img in test_negative]
