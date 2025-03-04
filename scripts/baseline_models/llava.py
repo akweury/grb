@@ -128,7 +128,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
 
     # Generate
     print(f"Inputs: {inputs}")
-    generate_ids = model.generate(**inputs, max_new_tokens=512)
+    generate_ids = model.generate(**inputs, max_new_tokens=128)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
     answer = answer[0].split("assistant")[-1]
     print(f"Answer: {answer}")
@@ -162,7 +162,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
             return_tensors="pt"
         ).to(model.device, torch.float16)
 
-        generate_ids = model.generate(**inputs, max_new_tokens=512)
+        generate_ids = model.generate(**inputs, max_new_tokens=128)
         prediction = processor.decode(generate_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
         prediction_label = prediction.split(".assistant")[-1]
         print(f"Prediction : {prediction_label}\n\n")
