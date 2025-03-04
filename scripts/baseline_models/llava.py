@@ -26,7 +26,6 @@ def load_llava_model(device):
         low_cpu_mem_usage=True,
         device_map=device
     )
-    # model.config.pad_token_id = processor.tokenizer.eos_token_id
     return model.to(device), processor
 
 
@@ -129,7 +128,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
 
     # Generate
     # print(inputs)
-    generate_ids = model.generate(**inputs, max_new_tokens=1024)
+    generate_ids = model.generate(**inputs, max_new_tokens=512)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
     answer = answer[0].split("assistant")[-1]
     print(f"Answer: {answer}")
@@ -163,7 +162,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
             return_tensors="pt"
         ).to(model.device, torch.float16)
 
-        generate_ids = model.generate(**inputs, max_new_tokens=1024)
+        generate_ids = model.generate(**inputs, max_new_tokens=512)
         prediction = processor.decode(generate_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
         prediction_label = prediction.split(".assistant")[-1]
         print(f"Prediction : {prediction_label}\n\n")
@@ -215,7 +214,7 @@ def run_llava(data_path, principle, batch_size, device):
     avg_f1 = sum(total_f1) / len(total_f1) if total_f1 else 0
 
     results["average"] = {"accuracy": avg_accuracy, "f1_score": avg_f1}
-    results_path = Path(data_path) / "evaluation_results.json"
+    results_path = Path(data_path) / "evaluation_results_llava.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 
