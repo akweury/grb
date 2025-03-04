@@ -27,7 +27,7 @@ def init_wandb(batch_size):
 #     return model.to(device), processor
 
 def load_llava_model(device):
-    model_name = "llava-hf/llava-2-7b-hf"  # or whatever new checkpoint
+    model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"  # or whatever new checkpoint
     model = LlavaForConditionalGeneration.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
