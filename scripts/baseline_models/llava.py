@@ -14,6 +14,11 @@ def init_wandb(batch_size):
     wandb.init(project="LLM-Gestalt-Patterns", config={"batch_size": batch_size})
 
 def load_llava_model(device):
+    torch.backends.cuda.enable_flash_sdp(False)  # Disable Flash SDP
+    torch.backends.cuda.enable_mem_efficient_sdp(False)  # Disable Memory Efficient SDP
+    torch.backends.cuda.enable_math_sdp(True)  # Fallback to standard math-based SDP
+
+
     processor = AutoProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-7b-si-hf")
     model = LlavaOnevisionForConditionalGeneration.from_pretrained(
         "llava-hf/llava-onevision-qwen2-7b-si-hf",
