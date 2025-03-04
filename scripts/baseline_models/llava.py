@@ -127,10 +127,10 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     ).to(model.device, torch.float16)
 
     # Generate
-    print(inputs)
+    # print(inputs)
     generate_ids = model.generate(**inputs, max_new_tokens=10)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
-    print(answer)
+    # print(answer)
     return answer
 
 
@@ -161,11 +161,11 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
             return_tensors="pt"
         ).to(model.device, torch.float16)
 
-        # Generate
-        print(inputs)
         generate_ids = model.generate(**inputs, max_new_tokens=5)
         prediction = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
+        print(f"Prediction: {prediction}\n\n"
+              f"Logic Rules: {logic_rules}\n\n")
         predicted_label = 1 if "positive" in prediction else 0
         all_labels.append(label)
         all_predictions.append(predicted_label)

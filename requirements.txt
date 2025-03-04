@@ -18,7 +18,7 @@ stable_baselines3
 gym
 numpy
 timm
-transformers==4.47.0
+transformers
 accelerate>=0.26.0
 bitsandbytes
 ace_tools
