@@ -16,13 +16,38 @@ def init_wandb(batch_size):
     wandb.init(project="LLM-Gestalt-Patterns", config={"batch_size": batch_size})
 
 
-# Load LLaVA model
-def load_llava_model(device):
-    model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
-    processor = LlavaProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
+# # Load LLaVA model
+# def load_llava_model(device):
+#     model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
+#     processor = LlavaProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
+#
+#     model.save_pretrained(config.cache_model_path)
+#     processor.save_pretrained(config.cache_model_path)
+#
+#     return model.to(device), processor
 
-    model.save_pretrained(config.cache_model_path)
-    processor.save_pretrained(config.cache_model_path)
+def load_llava_model(device):
+    model_name = "llava-hf/llava-2-7b-hf"  # or whatever new checkpoint
+    model = LlavaForConditionalGeneration.from_pretrained(
+        model_name,
+        torch_dtype=torch.float16,
+        device_map="auto",
+    )
+    processor = LlavaProcessor.from_pretrained(model_name)
+
+    # Ensure we have a valid patch_size
+    if hasattr(processor, "image_processor") and hasattr(processor.image_processor, "patch_size"):
+        if processor.image_processor.patch_size is None:
+            processor.image_processor.patch_size = 14  # typical for CLIP ViT-L/14
+
+    # Optionally ensure vision tower is set
+    if model.config.vision_tower is None:
+        model.config.vision_tower = "openai/clip-vit-large-patch14"
+    if not hasattr(model.config, "vision_config") or model.config.vision_config is None:
+        from transformers import CLIPVisionConfig
+        model.config.vision_config = CLIPVisionConfig.from_pretrained("openai/clip-vit-large-patch14")
+    if not hasattr(model.config.vision_config, "patch_size") or model.config.vision_config.patch_size is None:
+        model.config.vision_config.patch_size = 14
 
     return model.to(device), processor
 
