@@ -185,10 +185,13 @@ python -m scripts.evaluate_models --batch_size 32 --principle similarity --devic
 python -m scripts.evaluate_models --batch_size 32 --principle closure --device_id 3
 python -m scripts.evaluate_models --batch_size 32 --principle symmetry --device_id 5
 python -m scripts.evaluate_models --batch_size 50 --principle continuity --device_id 6
-python -m scripts.evaluate_models --device_id 4
-python -m scripts.baseline_models.llm_llama3 --device_id 4
-python -m scripts.baseline_models.llm_llama3 --device_id 3
- 
+
+# train Llava
+python -m scripts.evaluate_models --batch_size 1 --principle proximity --device_id 4
+python -m scripts.evaluate_models --batch_size 1 --principle similarity --device_id 5
+python -m scripts.evaluate_models --batch_size 1 --principle closure --device_id 6
+python -m scripts.evaluate_models --batch_size 1 --principle symmetry --device_id 3
+python -m scripts.evaluate_models --batch_size 1 --principle continuity --device_id 7
 ```
 
 
