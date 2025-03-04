@@ -118,7 +118,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
 
     ]
     inputs = processor.apply_chat_template(
-        [conversation],
+        conversation,
         add_generation_prompt=True,
         tokenize=True,
         return_dict=True,
