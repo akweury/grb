@@ -24,7 +24,7 @@ def load_llava_model(device):
         "llava-hf/llava-onevision-qwen2-7b-si-hf",
         torch_dtype=torch.float16,
         low_cpu_mem_usage=True,
-        device_map=device
+        device_map="auto"
     )
     return model.to(device), processor
 
