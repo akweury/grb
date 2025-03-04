@@ -10,7 +10,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from PIL import Image
 from sklearn.metrics import f1_score
-from transformers import LlavaOneVisionForConditionalGeneration, LlavaOneVisionProcessor
+from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
+
 
 def init_wandb(batch_size):
     wandb.init(project="LLM-Gestalt-Patterns", config={"batch_size": batch_size})
@@ -27,17 +28,13 @@ def init_wandb(batch_size):
 #     return model.to(device), processor
 
 def load_llava_model(device):
-
-
-    model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"
-
-    model = LlavaOneVisionForConditionalGeneration.from_pretrained(
-        model_name,
+    processor = AutoProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-7b-ov-hf")
+    model = LlavaOnevisionForConditionalGeneration.from_pretrained(
+        "llava-hf/llava-onevision-qwen2-7b-ov-hf",
         torch_dtype=torch.float16,
-        device_map="auto",
+        low_cpu_mem_usage=True,
+        device_map=device
     )
-    processor = LlavaOneVisionProcessor.from_pretrained(model_name)
-    #
     # model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"  # or whatever new checkpoint
     # model = LlavaForConditionalGeneration.from_pretrained(
     #     model_name,
@@ -46,8 +43,8 @@ def load_llava_model(device):
     # )
     # processor = LlavaProcessor.from_pretrained(model_name)
     # Make sure patch_size, etc., are set
-    processor.image_processor.patch_size = 14
-    processor.image_processor.vision_feature_select_strategy = "first"
+    # processor.image_processor.patch_size = 14
+    # processor.image_processor.vision_feature_select_strategy = "first"
 
     #
     # # Ensure we have a valid patch_size
@@ -94,66 +91,80 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     conversation context so the model "remembers" what it has seen so far.
     """
 
-    # 1) Start with a system-style message explaining the overall goal
-    conversation_context = (
-        f"You are an AI reasoning about visual patterns based on Gestalt principles.\n"
-        f"Principle: {principle}\n\n"
-        f"We have a set of images labeled Positive and a set labeled Negative.\n"
-        f"You will see each image one by one.\n"
-        f"Describe each image, note any pattern features, and keep track of insights.\n"
-        f"After seeing all images, we will derive the logic that differentiates Positive from Negative."
-    )
+    # Prepare a batch of two prompts, where the first one is a multi-turn conversation and the second is not
+    conversation = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": train_positive[0]},
+                {"type": "text", "text": f"You are an AI reasoning about visual patterns based on Gestalt principles.\n"
+                                         f"Principle: {principle}\n\n"
+                                         f"We have a set of images labeled Positive and a set labeled Negative.\n"
+                                         f"You will see each image one by one.\n"
+                                         f"Describe each image, note any pattern features, and keep track of insights.\n"
+                                         f"After seeing all images, we will derive the logic that differentiates Positive from Negative. "
+                                         f"The first positive image."},
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": train_positive[1]},
+                {"type": "text", "text": f"The second positive image."},
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": train_positive[2]},
+                {"type": "text", "text": f"The third positive image."},
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": train_negative[0]},
+                {"type": "text", "text": f"The first negative image."},
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": train_negative[1]},
+                {"type": "text", "text": f"The second negative image."},
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": train_negative[2]},
+                {"type": "text", "text": f"The third negative image."},
+            ],
+        },
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": "Now we have seen all the Positive and Negative examples. "
+                                         "Please state the logic/rule that distinguishes them. "
+                                         "Focus on the Gestalt principle of "
+                                         f"{principle}."},
+            ],
+        },
 
-    # 2) Function to do a single turn (pass one image + conversation so far)
-    def single_turn(model_input_text, image):
-        # Combine context + new user prompt
-        full_prompt = conversation_context + "\n\nUser: " + model_input_text
-        print(f"prompt: {full_prompt}")
-        print(f"image: {image}")
-        # Process with LLaVA
-        inputs = processor(
-            text=full_prompt,
-            images=[image],  # pass as list
-            return_tensors="pt"
-        ).to(device)
+    ]
+    inputs = processor.apply_chat_template(
+        [conversation],
+        add_generation_prompt=True,
+        tokenize=True,
+        return_dict=True,
+        padding=True,
+        return_tensors="pt"
+    ).to(model.device, torch.float16)
 
-        outputs = model.generate(**inputs)
-        answer = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        return answer
-
-    # 3) Loop over all Positive images
-    for i, img in enumerate(train_positive, start=1):
-        user_prompt = (
-            f"This is Positive image #{i}. "
-            "Describe what you see that might relate to the Gestalt principle."
-        )
-        answer = single_turn(user_prompt, img)
-
-        # Append the model's response to conversation (Assistant role)
-        conversation_context += f"\nUser: {user_prompt}\nAssistant: {answer}"
-
-    # 4) Loop over all Negative images
-    for i, img in enumerate(train_negative, start=1):
-        user_prompt = (
-            f"This is Negative image #{i}. "
-            "Describe what you see that might differ from the Positive examples."
-        )
-        answer = single_turn(user_prompt, img)
-
-        conversation_context += f"\nUser: {user_prompt}\nAssistant: {answer}"
-
-    # 5) Final question: "What is the core logic that differentiates Positive vs. Negative?"
-    final_prompt = (
-        "Now we have seen all the Positive and Negative examples. "
-        "Please state the logic/rule that distinguishes them. "
-        "Focus on the Gestalt principle of "
-        f"{principle}."
-    )
-    final_answer = single_turn(final_prompt, train_negative[-1])  # or pass a dummy image if needed
-    conversation_context += f"\nUser: {final_prompt}\nAssistant: {final_answer}"
-
-    print(f"\n=== Final Inferred Rule for {principle} ===\n{final_answer}\n")
-    return final_answer
+    # Generate
+    generate_ids = model.generate(**inputs, max_new_tokens=30)
+    answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+    return answer
 
 
 # def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
