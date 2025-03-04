@@ -24,7 +24,7 @@ def load_llava_model(device):
         "llava-hf/llava-onevision-qwen2-7b-si-hf",
         torch_dtype=torch.float16,
         low_cpu_mem_usage=True,
-        device_map="auto"
+        device_map=device
     )
     return model.to(device), processor
 
@@ -127,8 +127,10 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     ).to(model.device, torch.float16)
 
     # Generate
-    generate_ids = model.generate(**inputs, max_new_tokens=20)
+    print(inputs)
+    generate_ids = model.generate(**inputs, max_new_tokens=10)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
+    print(answer)
     return answer
 
 
@@ -160,7 +162,8 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
         ).to(model.device, torch.float16)
 
         # Generate
-        generate_ids = model.generate(**inputs, max_new_tokens=15)
+        print(inputs)
+        generate_ids = model.generate(**inputs, max_new_tokens=5)
         prediction = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
         predicted_label = 1 if "positive" in prediction else 0
