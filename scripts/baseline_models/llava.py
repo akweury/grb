@@ -4,13 +4,13 @@ import argparse
 import json
 import wandb
 from pathlib import Path
-from transformers import LlavaForConditionalGeneration, LlavaProcessor
+# from transformers import LlavaForConditionalGeneration, LlavaProcessor
 from scripts import config
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from PIL import Image
 from sklearn.metrics import f1_score
-
+from transformers import LlavaOneVisionForConditionalGeneration, LlavaOneVisionProcessor
 
 def init_wandb(batch_size):
     wandb.init(project="LLM-Gestalt-Patterns", config={"batch_size": batch_size})
@@ -27,13 +27,24 @@ def init_wandb(batch_size):
 #     return model.to(device), processor
 
 def load_llava_model(device):
-    model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"  # or whatever new checkpoint
-    model = LlavaForConditionalGeneration.from_pretrained(
+
+
+    model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"
+
+    model = LlavaOneVisionForConditionalGeneration.from_pretrained(
         model_name,
         torch_dtype=torch.float16,
         device_map="auto",
     )
-    processor = LlavaProcessor.from_pretrained(model_name)
+    processor = LlavaOneVisionProcessor.from_pretrained(model_name)
+    #
+    # model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"  # or whatever new checkpoint
+    # model = LlavaForConditionalGeneration.from_pretrained(
+    #     model_name,
+    #     torch_dtype=torch.float16,
+    #     device_map="auto",
+    # )
+    # processor = LlavaProcessor.from_pretrained(model_name)
     # Make sure patch_size, etc., are set
     processor.image_processor.patch_size = 14
     processor.image_processor.vision_feature_select_strategy = "first"
