@@ -4,10 +4,7 @@ import argparse
 import json
 import wandb
 from pathlib import Path
-# from transformers import LlavaForConditionalGeneration, LlavaProcessor
 from scripts import config
-from torch.utils.data import DataLoader
-from torchvision import transforms
 from PIL import Image
 from sklearn.metrics import f1_score
 from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
@@ -16,51 +13,14 @@ from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
 def init_wandb(batch_size):
     wandb.init(project="LLM-Gestalt-Patterns", config={"batch_size": batch_size})
 
-
-# # Load LLaVA model
-# def load_llava_model(device):
-#     model = LlavaForConditionalGeneration.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
-#     processor = LlavaProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-0.5b-ov-hf")
-#
-#     model.save_pretrained(config.cache_model_path)
-#     processor.save_pretrained(config.cache_model_path)
-#
-#     return model.to(device), processor
-
 def load_llava_model(device):
     processor = AutoProcessor.from_pretrained("llava-hf/llava-onevision-qwen2-7b-si-hf")
     model = LlavaOnevisionForConditionalGeneration.from_pretrained(
         "llava-hf/llava-onevision-qwen2-7b-si-hf",
-        torch_dtype=torch.float16,
+        torch_dtype=torch.bfloat16,
         low_cpu_mem_usage=True,
         device_map=device
     )
-    # model_name = "llava-hf/llava-onevision-qwen2-0.5b-ov-hf"  # or whatever new checkpoint
-    # model = LlavaForConditionalGeneration.from_pretrained(
-    #     model_name,
-    #     torch_dtype=torch.float16,
-    #     device_map="auto",
-    # )
-    # processor = LlavaProcessor.from_pretrained(model_name)
-    # Make sure patch_size, etc., are set
-    # processor.image_processor.patch_size = 14
-    # processor.image_processor.vision_feature_select_strategy = "first"
-
-    #
-    # # Ensure we have a valid patch_size
-    # if hasattr(processor, "image_processor") and hasattr(processor.image_processor, "patch_size"):
-    #     if processor.image_processor.patch_size is None:
-    #         processor.image_processor.patch_size = 14  # typical for CLIP ViT-L/14
-    #
-    # # Optionally ensure vision tower is set
-    # # if model.config.vision_tower is None:
-    # #     model.config.vision_tower = "openai/clip-vit-large-patch14"
-    # if not hasattr(model.config, "vision_config") or model.config.vision_config is None:
-    #     from transformers import CLIPVisionConfig
-    #     model.config.vision_config = CLIPVisionConfig.from_pretrained("openai/clip-vit-large-patch14")
-    # if not hasattr(model.config.vision_config, "patch_size") or model.config.vision_config.patch_size is None:
-    #     model.config.vision_config.patch_size = 14
-
     return model.to(device), processor
 
 
@@ -90,7 +50,7 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     Multi-turn approach: We feed each image individually, accumulating
     conversation context so the model "remembers" what it has seen so far.
     """
-
+    torch.cuda.empty_cache()
     # Prepare a batch of two prompts, where the first one is a multi-turn conversation and the second is not
     conversation = [
         {
@@ -162,47 +122,17 @@ def infer_logic_rules(model, processor, train_positive, train_negative, device, 
     ).to(model.device, torch.float16)
 
     # Generate
-    generate_ids = model.generate(**inputs, max_new_tokens=30)
+    generate_ids = model.generate(**inputs, max_new_tokens=20)
     answer = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
     return answer
-
-
-# def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
-#     prompt = generate_reasoning_prompt(principle)
-#     print(f"prompt: {prompt}")
-#     print(f"train_positive: {train_positive}, train_negative: {train_negative}")
-#     inputs = processor(text=prompt, images=train_positive + train_negative, return_tensors="pt").to(device)
-#     print(f"logic input:{inputs}")
-#     print(inputs["pixel_values"].shape)  # Should be (batch_size, 3, H, W)
-#     outputs = model.generate(**inputs)
-#     logic_rules = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
-#     print(f"Inferred rules for {principle}: {logic_rules}")
-#     return logic_rules
 
 
 def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     model.eval()
     correct, total = 0, 0
     all_labels, all_predictions = [], []
-
+    torch.cuda.empty_cache()
     for image, label in test_images:
-        # prompt = (f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
-        #           f"Only answer with positive and negative.")
-        # print(f"image type")
-        # print(type(image))
-        # inputs = processor(images=[image], text=prompt, return_tensors="pt").to(device)
-        # # text_inputs = processor(text=prompt, return_tensors="pt").to(device)
-        #
-        # # inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
-        #
-        # # if "input_ids" not in inputs:
-        # #     print("Warning: input_ids not generated correctly for image.")
-        # #     continue
-        # print(f"eval inputs:{inputs}")
-        # outputs = model.generate(**inputs)
-        # prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
-        #
-
         conversation = [
             {
                 "role": "user",
@@ -225,7 +155,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
         ).to(model.device, torch.float16)
 
         # Generate
-        generate_ids = model.generate(**inputs, max_new_tokens=30)
+        generate_ids = model.generate(**inputs, max_new_tokens=15)
         prediction = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
         predicted_label = 1 if "positive" in prediction else 0
