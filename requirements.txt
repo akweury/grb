@@ -1,4 +1,8 @@
 opencv-python==4.8.0.74
+torch==2.1.2+cu121
+torchvision==0.16.2+cu121
+torchaudio==2.1.2+cu121
+-f https://download.pytorch.org/whl/cu121
 colorlog
 numpy
 Pillow
