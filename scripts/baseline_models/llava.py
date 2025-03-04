@@ -66,7 +66,7 @@ def load_llava_model(device):
 
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
-    return [Image.open(img_path).convert("RGB").resize((224, 224)) for img_path in image_paths]
+    return [Image.open(img_path).convert("RGB") for img_path in image_paths]
 
 
 def generate_reasoning_prompt(principle):
@@ -186,21 +186,47 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     all_labels, all_predictions = [], []
 
     for image, label in test_images:
-        prompt = (f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
-                  f"Only answer with positive and negative.")
-        print(f"image type")
-        print(type(image))
-        inputs = processor(images=[image], text=prompt, return_tensors="pt").to(device)
-        # text_inputs = processor(text=prompt, return_tensors="pt").to(device)
+        # prompt = (f"Using the following reasoning rules: {logic_rules}. Classify this image as Positive or Negative."
+        #           f"Only answer with positive and negative.")
+        # print(f"image type")
+        # print(type(image))
+        # inputs = processor(images=[image], text=prompt, return_tensors="pt").to(device)
+        # # text_inputs = processor(text=prompt, return_tensors="pt").to(device)
+        #
+        # # inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
+        #
+        # # if "input_ids" not in inputs:
+        # #     print("Warning: input_ids not generated correctly for image.")
+        # #     continue
+        # print(f"eval inputs:{inputs}")
+        # outputs = model.generate(**inputs)
+        # prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        #
 
-        # inputs = {"pixel_values": image_inputs["pixel_values"], "input_ids": text_inputs["input_ids"]}
+        conversation = [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": image},
+                    {"type": "text",
+                     "text": f"Using the following reasoning rules: {logic_rules}. "
+                             f"Classify this image as Positive or Negative."
+                             f"Only answer with positive or negative."},
+                ]
+            }
+        ]
+        inputs = processor.apply_chat_template(
+            [conversation],
+            add_generation_prompt=True,
+            tokenize=True,
+            return_dict=True,
+            padding=True,
+            return_tensors="pt"
+        ).to(model.device, torch.float16)
 
-        # if "input_ids" not in inputs:
-        #     print("Warning: input_ids not generated correctly for image.")
-        #     continue
-        print(f"eval inputs:{inputs}")
-        outputs = model.generate(**inputs)
-        prediction = processor.tokenizer.decode(outputs[0], skip_special_tokens=True)
+        # Generate
+        generate_ids = model.generate(**inputs, max_new_tokens=30)
+        prediction = processor.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
         predicted_label = 1 if "positive" in prediction else 0
         all_labels.append(label)
