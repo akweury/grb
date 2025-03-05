@@ -6,8 +6,8 @@ import matplotlib
 root = Path(__file__).parents[1]
 
 # settings
-num_samples = 100
-img_width = 224
+num_samples = 10
+img_width = 1024
 
 # -------------------- shape settings --------------------
 bk_shapes = ["none", "triangle", "square", "circle"]

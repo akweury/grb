@@ -79,6 +79,8 @@ def save_principle_patterns(principle_name, pattern_dicts):
         qualifier_exist = True if "exist" in pattern_name else False
         prop_shape = True if "shape" in pattern_name else False
         prop_color = True if "color" in pattern_name else False
+        prop_count = True if "count" in pattern_name else False
+        prop_size = True if "size" in pattern_name else False
         non_overlap = True if "non_overlap" in pattern_name else False
 
         pattern_data = {
@@ -91,6 +93,8 @@ def save_principle_patterns(principle_name, pattern_dicts):
             "prop_shape": prop_shape,
             "prop_color": prop_color,
             "non_overlap": non_overlap,
+            "prop_size": prop_size,
+            "prop_count": prop_count,
             "resolution": config.img_width
         }
 
@@ -116,10 +120,10 @@ def save_principle_patterns(principle_name, pattern_dicts):
 
 def main():
     principles = {
-        # "proximity": prox_patterns.pattern_dicts,
-        # "similarity": similarity_patterns.pattern_dicts,
-        # "symmetry": symmetry_patterns.pattern_dicts,
-        # "continuity": continuity_patterns.pattern_dicts,
+        "proximity": prox_patterns.pattern_dicts,
+        "similarity": similarity_patterns.pattern_dicts,
+        "symmetry": symmetry_patterns.pattern_dicts,
+        "continuity": continuity_patterns.pattern_dicts,
         "closure": closure_patterns.pattern_dicts,
     }
     for principle_name, pattern_dicts in principles.items():

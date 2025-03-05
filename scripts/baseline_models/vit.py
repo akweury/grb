@@ -121,7 +121,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     f1 = f1_score(all_labels, all_predictions, average='macro')
     precision = precision_score(all_labels, all_predictions, average='macro', zero_division=0)
     recall = recall_score(all_labels, all_predictions, average='macro', zero_division=0)
-
+    print(f"test folder:{test_loader}")
     wandb.log({
         f"{principle}/test_accuracy": accuracy,
         f"{principle}/f1_score": f1,

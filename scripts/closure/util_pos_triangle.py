@@ -22,7 +22,6 @@ def generate_random_anchor(existing_anchors):
 def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity):
     objs = []
     positions = []
-
     # Generate random anchors for clusters ensuring proper distance
     group_anchors = []
     for _ in range(clu_num):
