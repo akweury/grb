@@ -9,11 +9,12 @@ import matplotlib.pyplot as plt
 import scipy.stats as stats
 import torch
 
+
 def analysis_llava(principle, model_name):
     path = config.results / principle
     json_path = path / f"{model_name}_evaluation_results.json"
     data = json.load(open(json_path, "r"))
-    accs = torch.tensor([v["accuracy"]/100 for k, v in data.items()])
+    accs = torch.tensor([v["accuracy"] / 100 for k, v in data.items()])
     f1s = torch.tensor([v["f1_score"] for k, v in data.items()])
     # Convert JSON to DataFrame
 
@@ -70,7 +71,8 @@ def analysis_llava(principle, model_name):
     })
 
     # Display the formatted table
-    tools.display_dataframe_to_user(name=f"Formatted Performance Table {principle}", dataframe=formatted_performance_table)
+    tools.display_dataframe_to_user(name=f"Formatted Performance Table {principle}",
+                                    dataframe=formatted_performance_table)
 
 
 def analysis_vit(principle, model_name):
@@ -135,14 +137,15 @@ def analysis_vit(principle, model_name):
     })
 
     # Display the formatted table
-    tools.display_dataframe_to_user(name=f"Formatted Performance Table {principle}", dataframe=formatted_performance_table)
+    tools.display_dataframe_to_user(name=f"Formatted Performance Table {principle}",
+                                    dataframe=formatted_performance_table)
 
 
 if __name__ == "__main__":
-    # principle = "symmetry"
+    principle = "symmetry"
     # principle = "continuity"
     # principle = "proximity"
-    principle = "similarity"
+    # principle = "similarity"
     # principle = "closure"
     # model_name = "Llava"
     model_name = "vit_base_patch16_224"
