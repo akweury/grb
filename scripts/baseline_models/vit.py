@@ -115,10 +115,6 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
             # Ensure labels align correctly with expected classes
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
-
-            print(f"all_labels: {all_labels}")
-            print(f"all_predictions: {all_predictions}")
-
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
@@ -148,7 +144,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     print(
         f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
 
-    print(f"Confusion Matrix:\n{cm}")
+    # print(f"Confusion Matrix:\n{cm}")
 
     return accuracy, f1, precision, recall
 
