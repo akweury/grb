@@ -35,7 +35,7 @@ def init_wandb(batch_size):
 
 def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetch_factor=None):
     transform = transforms.Compose([
-        transforms.Resize(256), transforms.CenterCrop(IMAGE_SIZE),
+        transforms.Resize(1024), transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
@@ -124,8 +124,8 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
 
 def run_vit(data_path, principle, batch_size, device):
     init_wandb(batch_size)
-    # model_name = "vit_base_patch16_224"
-    model_name = "ViT-Base-Patch32-384"
+    model_name = "vit_base_patch16_224"
+    # model_name = "ViT-Base-Patch32-384"
     checkpoint_path = Path(data_path) / f"{model_name}_checkpoint.pth"
     device = torch.device(device)
     model = ViTClassifier(model_name).to(device, memory_format=torch.channels_last)
