@@ -51,6 +51,7 @@ def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetc
                       pin_memory=pin_memory, prefetch_factor=prefetch_factor,
                       persistent_workers=(num_workers > 0)), len(subset_dataset)
 
+
 # Load Pretrained ViT Model
 class ViTClassifier(nn.Module):
     def save_checkpoint(self, filepath):
@@ -63,7 +64,7 @@ class ViTClassifier(nn.Module):
         else:
             print("No checkpoint found, starting from scratch.")
 
-    def __init__(self,model_name, num_classes=NUM_CLASSES):
+    def __init__(self, model_name, num_classes=NUM_CLASSES):
         super(ViTClassifier, self).__init__()
         self.model = timm.create_model(model_name, pretrained=True, num_classes=num_classes)
         self.model.set_grad_checkpointing(True)  # Enable gradient checkpointing
@@ -126,7 +127,7 @@ def run_vit(data_path, principle, batch_size, device):
     init_wandb(batch_size)
     model_name = "vit_base_patch16_224"
     # model_name = "ViT-Base-Patch32-384"
-    checkpoint_path = Path(data_path) / f"{model_name}_checkpoint.pth"
+    checkpoint_path = config.results / principle / f"{model_name}_checkpoint.pth"
     device = torch.device(device)
     model = ViTClassifier(model_name).to(device, memory_format=torch.channels_last)
     model.load_checkpoint(checkpoint_path)
@@ -168,7 +169,7 @@ def run_vit(data_path, principle, batch_size, device):
     print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
 
     # Save results to JSON file
-    results_path = Path(data_path) / f"{model_name}_evaluation_results.json"
+    results_path = config.results / principle / f"{model_name}_evaluation_results.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 

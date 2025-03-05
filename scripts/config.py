@@ -40,3 +40,7 @@ if not os.path.exists(cache_model_path):
 scripts = root / 'scripts'
 if not os.path.exists(scripts):
     os.mkdir(scripts)
+# -------------- results path -----------------------
+results = root / "results"
+if not os.path.exists(results):
+    os.makedirs(results)
