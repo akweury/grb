@@ -34,7 +34,7 @@ def init_wandb(batch_size):
     })
 
 
-def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetch_factor=None):
+def get_dataloader(data_dir, batch_size, img_num, num_workers=2, pin_memory=True, prefetch_factor=None):
     transform = transforms.Compose([
         transforms.Resize(224), transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
@@ -44,7 +44,7 @@ def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetc
     total_images = len(dataset)
 
     # Randomly select 5 unique indices from the dataset
-    selected_indices = random.sample(range(total_images), min(5, total_images))
+    selected_indices = random.sample(range(total_images), min(img_num, total_images))
     subset_dataset = Subset(dataset, selected_indices)
     return DataLoader(subset_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                       pin_memory=pin_memory, prefetch_factor=prefetch_factor,
@@ -149,7 +149,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     return accuracy, f1, precision, recall
 
 
-def run_vit(data_path, principle, batch_size, device):
+def run_vit(data_path, principle, batch_size, device, img_num):
     init_wandb(batch_size)
     model_name = "vit_base_patch16_224"
     checkpoint_path = config.results / principle / f"{model_name}_checkpoint.pth"
@@ -170,7 +170,7 @@ def run_vit(data_path, principle, batch_size, device):
     pattern_folders = sorted([p for p in (principle_path / "train").iterdir() if p.is_dir()], key=lambda x: x.stem)
 
     for pattern_folder in pattern_folders:
-        train_loader, num_train_images = get_dataloader(pattern_folder, batch_size)
+        train_loader, num_train_images = get_dataloader(pattern_folder, batch_size, img_num)
         wandb.log({f"{principle}/num_train_images": num_train_images})
         train_vit(model, train_loader, device, checkpoint_path)
 
@@ -178,7 +178,7 @@ def run_vit(data_path, principle, batch_size, device):
 
         test_folder = Path(data_path) / "test" / pattern_folder.stem
         if test_folder.exists():
-            test_loader, _ = get_dataloader(test_folder, batch_size)
+            test_loader, _ = get_dataloader(test_folder, batch_size, img_num)
             accuracy, f1, precision, recall = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
             results[principle][pattern_folder.stem] = {
                 "accuracy": accuracy,
@@ -229,6 +229,7 @@ torch.backends.cudnn.benchmark = True  # Optimize cuDNN for fixed image size
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train and evaluate ViT model with CUDA support.")
     parser.add_argument("--device_id", type=int, help="Specify GPU device ID. If not provided, CPU will be used.")
+    parser.add_argument("--img_num", type=int, default=5)
     args = parser.parse_args()
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
