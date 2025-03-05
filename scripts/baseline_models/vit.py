@@ -96,10 +96,9 @@ def train_vit(model, train_loader, device, checkpoint_path):
                 torch.cuda.empty_cache()
 
 
-from sklearn.metrics import f1_score, confusion_matrix
+from sklearn.metrics import confusion_matrix
 
 
-# Evaluation Function
 def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
     correct, total = 0, 0
@@ -112,25 +111,37 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
             outputs = model(images)
             predicted = torch.argmax(outputs, dim=1)
 
-            # Ensure labels align correctly with expected classes
+            # Store labels and predictions
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
+
+            print(f"all_labels: {all_labels}")
+            print(f"all_predictions: {all_predictions}")
+
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
     # Accuracy Calculation
     accuracy = 100 * correct / total
 
-    # Confusion Matrix Calculation (TN, FP, FN, TP)
+    # Compute Confusion Matrix for [Negative (0), Positive (1)]
     cm = confusion_matrix(all_labels, all_predictions, labels=[0, 1])
-    TN, FP, FN, TP = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
+
+    # Extract TN, FP, FN, TP
+    if cm.shape == (2, 2):  # Ensure valid shape
+        TN, FP, FN, TP = cm.ravel()
+    else:
+        TN, FP, FN, TP = 0, 0, 0, 0  # Handle cases where confusion matrix is not full
 
     # Manual Precision and Recall Calculation
     precision = TP / (TP + FP) if (TP + FP) > 0 else 0  # Precision = TP / (TP + FP)
     recall = TP / (TP + FN) if (TP + FN) > 0 else 0  # Recall = TP / (TP + FN)
 
-    # F1 Score Calculation
-    f1 = f1_score(all_labels, all_predictions, average='macro')
+    # Manual F1 Score Calculation
+    if precision + recall > 0:
+        f1 = 2 * (precision * recall) / (precision + recall)
+    else:
+        f1 = 0  # Avoid division by zero
 
     # Log results
     wandb.log({
@@ -144,7 +155,9 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     print(
         f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
 
-    # print(f"Confusion Matrix:\n{cm}")
+    print(f"Confusion Matrix:\n{cm}")
+    print(f"True Negatives (TN): {TN}, False Positives (FP): {FP}")
+    print(f"False Negatives (FN): {FN}, True Positives (TP): {TP}")
 
     return accuracy, f1, precision, recall
 

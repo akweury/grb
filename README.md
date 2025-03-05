@@ -187,10 +187,10 @@ python -m scripts.evaluate_models --batch_size 32 --principle symmetry --device_
 python -m scripts.evaluate_models --batch_size 5 --principle continuity --device_id 5
 
 # train Llava
-python -m scripts.evaluate_models --batch_size 1 --principle proximity --device_id 4
-python -m scripts.evaluate_models --batch_size 1 --principle similarity --device_id 5
-python -m scripts.evaluate_models --batch_size 1 --principle closure --device_id 6
-python -m scripts.evaluate_models --batch_size 1 --principle symmetry --device_id 3
+python -m scripts.evaluate_models --batch_size 1 --principle proximity --img_num 100 --device_id 0
+python -m scripts.evaluate_models --batch_size 1 --principle similarity --img_num 100 --device_id 5
+python -m scripts.evaluate_models --batch_size 1 --principle closure  --img_num 100 --device_id 6
+python -m scripts.evaluate_models --batch_size 1 --principle symmetry --img_num 100 --device_id 2
 python -m scripts.evaluate_models --batch_size 100 --principle continuity --img_num 100 --device_id 7
 
 python -m scripts.evaluate_models --batch_size 1 --principle symmetry --device_id 3 > /app/data/output.log
