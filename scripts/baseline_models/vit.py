@@ -169,6 +169,7 @@ def run_vit(data_path, principle, batch_size, device):
     print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
 
     # Save results to JSON file
+    os.makedirs(config.results / principle, exist_ok=True)
     results_path = config.results / principle / f"{model_name}_evaluation_results.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
