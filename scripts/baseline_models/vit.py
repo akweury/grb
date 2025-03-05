@@ -120,6 +120,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     accuracy = 100 * correct / total
     f1 = f1_score(all_labels, all_predictions, average='macro')
     precision = precision_score(all_labels, all_predictions, average='macro', zero_division=0)
+    print(f"len all_labels: {len(all_labels)}")
     recall = recall_score(all_labels, all_predictions, average='macro', zero_division=0)
 
     wandb.log({
@@ -164,7 +165,6 @@ def run_vit(data_path, principle, batch_size, device):
 
         test_folder = Path(data_path) / "test" / pattern_folder.stem
         if test_folder.exists():
-            print(f"test folder: {test_folder}")
             test_loader, _ = get_dataloader(test_folder, batch_size)
             accuracy, f1, precision, recall = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
             results[principle][pattern_folder.stem] = {

@@ -141,6 +141,32 @@ def analysis_vit(principle, model_name):
     plt.tight_layout()
     plt.savefig(path / pdf_filename, format="pdf")
 
+    # Create Line Chart for Precision & Recall without Standard Deviation
+    fig, axes = plt.subplots(2, 1, figsize=(12, 12))
+    x = np.arange(len(df))  # X-axis index
+
+    axes[0].plot(x, df["precision"], label="Precision", color=precision_color)
+    axes[0].plot(x, df["recall"], label="Recall", color=recall_color)
+    axes[0].set_title(f"Precision & Recall Over Samples ({principle})", fontsize=14, fontweight='bold')
+    axes[0].set_xlabel("Sample Index", fontsize=12)
+    axes[0].set_ylabel("Score", fontsize=12)
+    axes[0].legend()
+    axes[0].grid(True, linestyle="--", alpha=0.6)
+
+    # Plot Precision - Recall Difference
+    diff = np.abs(df["precision"] - df["recall"])
+    axes[1].plot(x, diff, label="Precision - Recall", color='black')
+    axes[1].set_title(f"Precision - Recall Difference ({principle})", fontsize=14, fontweight='bold')
+    axes[1].set_xlabel("Sample Index", fontsize=12)
+    axes[1].set_ylabel("Difference", fontsize=12)
+    axes[1].legend()
+    axes[1].grid(True, linestyle="--", alpha=0.6)
+
+    # Save the performance line chart as PDF
+    line_chart_filename = f"performance_line_chart.pdf"
+    plt.tight_layout()
+    plt.savefig(path / line_chart_filename, format="pdf")
+
     # Create a formatted table
     formatted_performance_table = pd.DataFrame({
         "Metric": ["Accuracy", "F1 Score", "Precision", "Recall"],
