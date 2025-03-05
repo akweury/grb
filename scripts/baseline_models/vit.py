@@ -41,8 +41,6 @@ def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetc
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    dataset.class_to_idx = {'negative': 1, 'positive': 0}  # Manually swap labels
-
     total_images = len(dataset)
 
     # Randomly select 5 unique indices from the dataset
@@ -98,6 +96,9 @@ def train_vit(model, train_loader, device, checkpoint_path):
                 torch.cuda.empty_cache()
 
 
+from sklearn.metrics import f1_score, confusion_matrix
+
+
 # Evaluation Function
 def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
@@ -114,15 +115,26 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
             # Ensure labels align correctly with expected classes
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
+
             print(f"all_labels: {all_labels}")
             print(f"all_predictions: {all_predictions}")
+
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
 
+    # Accuracy Calculation
     accuracy = 100 * correct / total
+
+    # Confusion Matrix Calculation (TN, FP, FN, TP)
+    cm = confusion_matrix(all_labels, all_predictions, labels=[0, 1])
+    TN, FP, FN, TP = cm.ravel() if cm.size == 4 else (0, 0, 0, 0)
+
+    # Manual Precision and Recall Calculation
+    precision = TP / (TP + FP) if (TP + FP) > 0 else 0  # Precision = TP / (TP + FP)
+    recall = TP / (TP + FN) if (TP + FN) > 0 else 0  # Recall = TP / (TP + FN)
+
+    # F1 Score Calculation
     f1 = f1_score(all_labels, all_predictions, average='macro')
-    precision = precision_score(all_labels, all_predictions, average='macro', zero_division=0)
-    recall = recall_score(all_labels, all_predictions, average='macro', zero_division=0)
 
     # Log results
     wandb.log({
@@ -135,6 +147,8 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     # Print metrics
     print(
         f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
+
+    print(f"Confusion Matrix:\n{cm}")
 
     return accuracy, f1, precision, recall
 
