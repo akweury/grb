@@ -17,7 +17,7 @@ from scripts import config
 
 # Configuration
 # BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
-IMAGE_SIZE = 1024  # ViT default input size
+IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
 EPOCHS = 10
 ACCUMULATION_STEPS = 1  # Reduce accumulation steps for faster updates  # Gradient accumulation steps
@@ -35,7 +35,7 @@ def init_wandb(batch_size):
 
 def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetch_factor=None):
     transform = transforms.Compose([
-        transforms.Resize(1024), transforms.CenterCrop(IMAGE_SIZE),
+        transforms.Resize(224), transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
