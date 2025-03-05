@@ -41,13 +41,13 @@ def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetc
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
+    dataset.class_to_idx = {'negative': 1, 'positive': 0}  # Manually swap labels
 
     total_images = len(dataset)
 
     # Randomly select 5 unique indices from the dataset
     selected_indices = random.sample(range(total_images), min(5, total_images))
     subset_dataset = Subset(dataset, selected_indices)
-
     return DataLoader(subset_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                       pin_memory=pin_memory, prefetch_factor=prefetch_factor,
                       persistent_workers=(num_workers > 0)), len(subset_dataset)
@@ -118,11 +118,6 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
             print(f"all_predictions: {all_predictions}")
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
-
-    # Convert labels if necessary (if you expect positive = 0, negative = 1)
-    if test_loader.dataset.dataset.class_to_idx["positive"] == 1:
-        all_labels = [1 - label for label in all_labels]
-        all_predictions = [1 - pred for pred in all_predictions]
 
     accuracy = 100 * correct / total
     f1 = f1_score(all_labels, all_predictions, average='macro')
