@@ -14,6 +14,7 @@ from pathlib import Path
 from torch.utils.data import DataLoader, Subset
 from sklearn.metrics import f1_score
 from scripts import config
+from sklearn.metrics import precision_score, recall_score
 
 # Configuration
 # BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
@@ -103,6 +104,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     correct, total = 0, 0
     all_labels = []
     all_predictions = []
+
     with torch.no_grad():
         for images, labels in test_loader:
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
@@ -117,16 +119,25 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
 
     accuracy = 100 * correct / total
     f1 = f1_score(all_labels, all_predictions, average='macro')
+    precision = precision_score(all_labels, all_predictions, average='macro', zero_division=0)
+    recall = recall_score(all_labels, all_predictions, average='macro', zero_division=0)
 
-    wandb.log({f"{principle}/test_accuracy": accuracy, f"{principle}/f1_score": f1})
-    print(f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f}")
-    return accuracy, f1
+    wandb.log({
+        f"{principle}/test_accuracy": accuracy,
+        f"{principle}/f1_score": f1,
+        f"{principle}/precision": precision,
+        f"{principle}/recall": recall
+    })
+
+    print(
+        f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
+
+    return accuracy, f1, precision, recall
 
 
 def run_vit(data_path, principle, batch_size, device):
     init_wandb(batch_size)
     model_name = "vit_base_patch16_224"
-    # model_name = "ViT-Base-Patch32-384"
     checkpoint_path = config.results / principle / f"{model_name}_checkpoint.pth"
     device = torch.device(device)
     model = ViTClassifier(model_name).to(device, memory_format=torch.channels_last)
@@ -136,6 +147,8 @@ def run_vit(data_path, principle, batch_size, device):
     results = {}
     total_accuracy = []
     total_f1_scores = []
+    total_precision_scores = []
+    total_recall_scores = []
 
     principle_path = Path(data_path)
     results[principle] = {}
@@ -152,21 +165,35 @@ def run_vit(data_path, principle, batch_size, device):
         test_folder = Path(data_path) / "test" / pattern_folder.stem
         if test_folder.exists():
             test_loader, _ = get_dataloader(test_folder, batch_size)
-            accuracy, f1 = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
-            results[principle][pattern_folder.stem] = {"accuracy": accuracy, "f1_score": f1}
+            accuracy, f1, precision, recall = evaluate_vit(model, test_loader, device, principle, pattern_folder.stem)
+            results[principle][pattern_folder.stem] = {
+                "accuracy": accuracy,
+                "f1_score": f1,
+                "precision": precision,
+                "recall": recall
+            }
             total_accuracy.append(accuracy)
             total_f1_scores.append(f1)
+            total_precision_scores.append(precision)
+            total_recall_scores.append(recall)
 
             torch.cuda.empty_cache()
 
-    # Compute average F1 score per principle
+    # Compute average scores per principle
     avg_f1_scores = sum(total_f1_scores) / len(total_f1_scores) if total_f1_scores else 0
-    wandb.log({f"average_f1_scores_{principle}": avg_f1_scores})
-    print(f"Average F1 Scores of Principle {principle}: {avg_f1_scores}")
-
     avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
-    wandb.log({f"average_test_accuracy_{principle}": avg_accuracy})
-    print(f"Average Test Accuracy: {avg_accuracy:.2f}%")
+    avg_precision = sum(total_precision_scores) / len(total_precision_scores) if total_precision_scores else 0
+    avg_recall = sum(total_recall_scores) / len(total_recall_scores) if total_recall_scores else 0
+
+    wandb.log({
+        f"average_f1_scores_{principle}": avg_f1_scores,
+        f"average_test_accuracy_{principle}": avg_accuracy,
+        f"average_precision_{principle}": avg_precision,
+        f"average_recall_{principle}": avg_recall
+    })
+
+    print(
+        f"Average Metrics for {principle}:\n  - Accuracy: {avg_accuracy:.2f}%\n  - F1 Score: {avg_f1_scores:.4f}\n  - Precision: {avg_precision:.4f}\n  - Recall: {avg_recall:.4f}")
 
     # Save results to JSON file
     os.makedirs(config.results / principle, exist_ok=True)
