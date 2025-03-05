@@ -104,9 +104,10 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     correct, total = 0, 0
     all_labels = []
     all_predictions = []
-
+    print("evaluating")
     with torch.no_grad():
         for images, labels in test_loader:
+            print(labels)
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             outputs = model(images)
             predicted = torch.argmax(outputs, dim=1)
