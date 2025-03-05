@@ -1,4 +1,5 @@
 # Created by jing at 26.02.25
+import random
 import torch
 import os
 import torch.nn as nn
@@ -10,7 +11,7 @@ import argparse
 import json
 import wandb
 from pathlib import Path
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from sklearn.metrics import f1_score
 from scripts import config
 
@@ -39,9 +40,16 @@ def get_dataloader(data_dir, batch_size, num_workers=2, pin_memory=True, prefetc
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=pin_memory,
-                      prefetch_factor=prefetch_factor, persistent_workers=(num_workers > 0)), len(dataset)
 
+    total_images = len(dataset)
+
+    # Randomly select 5 unique indices from the dataset
+    selected_indices = random.sample(range(total_images), min(5, total_images))
+    subset_dataset = Subset(dataset, selected_indices)
+
+    return DataLoader(subset_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
+                      pin_memory=pin_memory, prefetch_factor=prefetch_factor,
+                      persistent_workers=(num_workers > 0)), len(subset_dataset)
 
 # Load Pretrained ViT Model
 class ViTClassifier(nn.Module):

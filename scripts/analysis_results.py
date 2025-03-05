@@ -141,9 +141,9 @@ def analysis_vit(principle, model_name):
 if __name__ == "__main__":
     # principle = "symmetry"
     # principle = "continuity"
-    # principle = "proximity"
+    principle = "proximity"
     # principle = "similarity"
-    principle = "closure"
+    # principle = "closure"
     model_name = "Llava"
     # model_name = "vit"
     if model_name == "Llava":

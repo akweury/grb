@@ -60,6 +60,8 @@ def get_symmetry_on_cir_positions(center, radius, num_points=2):
 
 def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
     objs = []
+    if obj_size < 0.03:
+        obj_size = 0.03
 
     shape = "circle"
     color = random.choice(config.color_large_exclude_gray)
@@ -104,7 +106,7 @@ def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
                 sizes = [obj_size] * group_obj_num
                 sizes = data_utils.duplicate_maintain_order(sizes, 2)
             else:
-                sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(group_obj_num)]
+                sizes = [random.uniform(obj_size * 0.8, obj_size * 1) for _ in range(group_obj_num)]
                 sizes = data_utils.duplicate_maintain_order(sizes, 2)
 
             positions = get_symmetry_on_cir_positions(group_centers[a_i], cir_so * dist, group_obj_num)
@@ -125,7 +127,7 @@ def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
                 colors = [random.choice(config.color_large_exclude_gray)] * group_obj_num
                 colors = data_utils.duplicate_maintain_order(colors, 2)
             if "size" in params:
-                sizes = [random.uniform(obj_size * 0.9, obj_size * 2) for _ in range(group_obj_num)]
+                sizes = [random.uniform(obj_size * 0.9, obj_size * 1) for _ in range(group_obj_num)]
                 sizes = data_utils.duplicate_maintain_order(sizes, 2)
 
             else:
@@ -135,8 +137,6 @@ def symmetry_solar_sys(obj_size, is_positive, clu_num, params):
                 positions = get_surrounding_positions(group_centers[a_i], cir_so * dist, group_obj_num)
             else:
                 positions = get_symmetry_on_cir_positions(group_centers[a_i], cir_so * dist, group_obj_num)
-
-
 
         for i in range(len(positions)):
             objs.append(encode_utils.encode_objs(
