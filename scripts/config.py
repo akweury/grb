@@ -6,8 +6,8 @@ import matplotlib
 root = Path(__file__).parents[1]
 
 # settings
-num_samples = 5
-img_width = 1024
+num_samples = 100
+img_width = 224
 
 # -------------------- shape settings --------------------
 bk_shapes = ["none", "triangle", "square", "circle"]
@@ -33,7 +33,7 @@ if not os.path.exists(raw_patterns):
     os.makedirs(raw_patterns)
 
 # -------------- llm path -----------------------
-cache_model_path = data/"llm_pretrained"
+cache_model_path = data / "llm_pretrained"
 if not os.path.exists(cache_model_path):
     os.makedirs(cache_model_path)
 # -------------- scripts path -----------------------
