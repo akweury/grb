@@ -120,7 +120,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
             correct += (predicted == labels).sum().item()
 
     # Convert labels if necessary (if you expect positive = 0, negative = 1)
-    if test_loader.dataset.dataset.class_to_idx["positive"] == 0:
+    if test_loader.dataset.dataset.class_to_idx["positive"] == 1:
         all_labels = [1 - label for label in all_labels]
         all_predictions = [1 - pred for pred in all_predictions]
 
