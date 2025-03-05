@@ -104,27 +104,32 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     correct, total = 0, 0
     all_labels = []
     all_predictions = []
-    print("evaluating")
+
     with torch.no_grad():
         for images, labels in test_loader:
-            print(labels)
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
             outputs = model(images)
             predicted = torch.argmax(outputs, dim=1)
 
+            # Ensure labels align correctly with expected classes
             all_labels.extend(labels.cpu().numpy())
             all_predictions.extend(predicted.cpu().numpy())
-
+            print(f"all_labels: {all_labels}")
+            print(f"all_predictions: {all_predictions}")
             total += labels.size(0)
             correct += (predicted == labels).sum().item()
+
+    # Convert labels if necessary (if you expect positive = 0, negative = 1)
+    if test_loader.dataset.dataset.class_to_idx["positive"] == 0:
+        all_labels = [1 - label for label in all_labels]
+        all_predictions = [1 - pred for pred in all_predictions]
 
     accuracy = 100 * correct / total
     f1 = f1_score(all_labels, all_predictions, average='macro')
     precision = precision_score(all_labels, all_predictions, average='macro', zero_division=0)
-    print(f"all_labels: {all_labels}")
-    print(f"all_predictions: {all_predictions}")
     recall = recall_score(all_labels, all_predictions, average='macro', zero_division=0)
 
+    # Log results
     wandb.log({
         f"{principle}/test_accuracy": accuracy,
         f"{principle}/f1_score": f1,
@@ -132,6 +137,7 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
         f"{principle}/recall": recall
     })
 
+    # Print metrics
     print(
         f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
 
