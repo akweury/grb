@@ -113,6 +113,8 @@ def calculate_metrics(TN, FP, FN, TP):
     recall = TP / (TP + FN) if (TP + FN) > 0 else 0
     f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
+    return precision, recall, f1_score
+
 
 def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
