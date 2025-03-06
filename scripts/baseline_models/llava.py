@@ -6,9 +6,10 @@ import wandb
 from pathlib import Path
 from scripts import config
 from PIL import Image
-from sklearn.metrics import f1_score
+
 from transformers import AutoProcessor, LlavaOnevisionForConditionalGeneration
 
+from scripts.utils import data_utils
 
 
 def init_wandb(batch_size):
@@ -32,12 +33,9 @@ def load_llava_model(device):
     return model.to(device), processor
 
 
-
-
 def load_images(image_dir, num_samples=5):
     image_paths = sorted(Path(image_dir).glob("*.png"))[:num_samples]
     return [Image.open(img_path).convert("RGB").resize((224, 224)) for img_path in image_paths]
-
 
 
 def generate_reasoning_prompt(principle):
@@ -54,7 +52,6 @@ def generate_reasoning_prompt(principle):
 
     What logical rule differentiates the positive from the negative examples?"""
     return prompt
-
 
 
 def infer_logic_rules(model, processor, train_positive, train_negative, device, principle):
@@ -181,14 +178,23 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
         correct += (predicted_label == label)
 
     accuracy = 100 * correct / total if total > 0 else 0
-    f1 = f1_score(all_labels, all_predictions, average='macro') if total > 0 else 0
 
-    wandb.log({f"{principle}/test_accuracy": accuracy, f"{principle}/f1_score": f1})
-    print(f"({principle}) Test Accuracy: {accuracy:.2f}% | F1 Score: {f1:.4f}")
-    return accuracy, f1
+    TN, FP, FN, TP = data_utils.confusion_matrix_elements(all_predictions, all_labels)
+    precision, recall, f1_score = data_utils.calculate_metrics(TN, FP, FN, TP)
+    # f1 = f1_score(all_labels, all_predictions, average='macro') if total > 0 else 0
+
+    wandb.log({f"{principle}/test_accuracy": accuracy,
+               f"{principle}/f1_score": f1_score,
+               f"{principle}/precision": precision,
+               f"{principle}/recall": recall
+               })
+    print(
+        f"({principle}) Test Accuracy: {accuracy:.2f}% | F1 Score: {f1_score:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
+
+    return accuracy, f1_score, precision, recall
 
 
-def run_llava(data_path, principle, batch_size, device):
+def run_llava(data_path, principle, batch_size, device, img_num):
     init_wandb(batch_size)
 
     model, processor = load_llava_model(device)
@@ -201,21 +207,29 @@ def run_llava(data_path, principle, batch_size, device):
 
     total_accuracy, total_f1 = [], []
     results = {}
+    total_precision_scores = []
+    total_recall_scores = []
 
     for pattern_folder in pattern_folders:
-        train_positive = load_images(pattern_folder / "positive")
-        train_negative = load_images(pattern_folder / "negative")
-        test_positive = load_images((principle_path / "test" / pattern_folder.name) / "positive")
-        test_negative = load_images((principle_path / "test" / pattern_folder.name) / "negative")
+        train_positive = load_images(pattern_folder / "positive", img_num)
+        train_negative = load_images(pattern_folder / "negative", img_num)
+        test_positive = load_images((principle_path / "test" / pattern_folder.name) / "positive", img_num)
+        test_negative = load_images((principle_path / "test" / pattern_folder.name) / "negative", img_num)
 
         logic_rules = infer_logic_rules(model, processor, train_positive, train_negative, device, principle)
 
         test_images = [(img, 1) for img in test_positive] + [(img, 0) for img in test_negative]
-        accuracy, f1 = evaluate_llm(model, processor, test_images, logic_rules, device, principle)
+        print("len test images", len(test_images))
+        accuracy, f1, precision, recall = evaluate_llm(model, processor, test_images, logic_rules, device, principle)
 
-        results[pattern_folder.name] = {"accuracy": accuracy, "f1_score": f1, "logic_rules": logic_rules}
+        results[pattern_folder.name] = {"accuracy": accuracy, "f1_score": f1, "logic_rules": logic_rules,
+                                        "precision": precision,
+                                        "recall": recall
+                                        }
         total_accuracy.append(accuracy)
         total_f1.append(f1)
+        total_precision_scores.append(precision)
+        total_recall_scores.append(recall)
 
     avg_accuracy = sum(total_accuracy) / len(total_accuracy) if total_accuracy else 0
     avg_f1 = sum(total_f1) / len(total_f1) if total_f1 else 0
@@ -237,4 +251,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     device = f"cuda:{args.device_id}" if args.device_id is not None and torch.cuda.is_available() else "cpu"
-    run_llava(config.raw_patterns, "proximity", 1, device)
+    run_llava(config.raw_patterns, "proximity", 1, device, img_num=5)

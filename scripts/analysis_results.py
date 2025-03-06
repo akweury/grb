@@ -86,7 +86,11 @@ def analysis_vit(principle, model_name, num):
 
     # Calculate performance statistics
     mean_accuracy = df["accuracy"].mean()
-    mean_f1 = df["f1_score"].mean()
+    precision = df["precision"].values
+    recall = df["recall"].values
+    f1_score = 2 * (precision * recall) / ((precision + recall)+1e-20)
+
+    mean_f1 = f1_score.mean()
     mean_precision = df["precision"].mean()
     mean_recall = df["recall"].mean()
 
@@ -184,14 +188,15 @@ def analysis_vit(principle, model_name, num):
 
 
 if __name__ == "__main__":
-    # principle = "symmetry"
-    # principle = "continuity"
-    principle = "proximity"
+    # principle = "proximity"
     # principle = "similarity"
     # principle = "closure"
+    # principle = "symmetry"
+    principle = "continuity"
+
     # model_name = "Llava"
     model_name = "vit_base_patch16_224"
     if model_name == "Llava":
         analysis_llava(principle, model_name)
     else:
-        analysis_vit(principle, model_name, num=100)
+        analysis_vit(principle, model_name, num=5)

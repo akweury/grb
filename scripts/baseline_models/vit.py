@@ -12,9 +12,10 @@ import json
 import wandb
 from pathlib import Path
 from torch.utils.data import DataLoader, Subset
-from sklearn.metrics import f1_score
+
 from scripts import config
-from sklearn.metrics import precision_score, recall_score
+
+from scripts.utils import data_utils
 
 # Configuration
 # BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
@@ -99,23 +100,6 @@ def train_vit(model, train_loader, device, checkpoint_path):
 from sklearn.metrics import confusion_matrix
 
 
-def confusion_matrix_elements(predictions, ground_truth):
-    TN = sum(1 for p, gt in zip(predictions, ground_truth) if p == 0 and gt == 0)
-    FP = sum(1 for p, gt in zip(predictions, ground_truth) if p == 1 and gt == 0)
-    FN = sum(1 for p, gt in zip(predictions, ground_truth) if p == 0 and gt == 1)
-    TP = sum(1 for p, gt in zip(predictions, ground_truth) if p == 1 and gt == 1)
-
-    return TN, FP, FN, TP
-
-
-def calculate_metrics(TN, FP, FN, TP):
-    precision = TP / (TP + FP) if (TP + FP) > 0 else 0
-    recall = TP / (TP + FN) if (TP + FN) > 0 else 0
-    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-
-    return precision, recall, f1_score
-
-
 def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
     correct, total = 0, 0
@@ -141,8 +125,8 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     # Accuracy Calculation
     accuracy = 100 * correct / total
 
-    TN, FP, FN, TP = confusion_matrix_elements(all_predictions, all_labels)
-    precision, recall, f1_score = calculate_metrics(TN, FP, FN, TP)
+    TN, FP, FN, TP = data_utils.confusion_matrix_elements(all_predictions, all_labels)
+    precision, recall, f1_score = data_utils.calculate_metrics(TN, FP, FN, TP)
 
     print(f"TN: {TN}, FP: {FP}, FN: {FN}, TP: {TP}")
     # print(f"Precision: {precision:.4f}")

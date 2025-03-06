@@ -9,8 +9,8 @@ import os
 # List of baseline models
 baseline_models = [
     # {"name": "ViT", "module": vit.run_vit},
-    {"name": "ViT-Base-Patch32-384", "module": vit.run_vit},
-    # {"name": "Llava", "module": llava.run_llava}
+    # {"name": "ViT-Base-Patch32-384", "module": vit.run_vit},
+    {"name": "Llava", "module": llava.run_llava}
 ]
 
 

@@ -72,3 +72,19 @@ def get_proper_sublist(lst):
         return []
     sublist_size = random.randint(1, len(lst) - 1)  # Ensure it's a proper sublist
     return random.sample(lst, sublist_size)  # Randomly select elements
+
+def confusion_matrix_elements(predictions, ground_truth):
+    TN = sum(1 for p, gt in zip(predictions, ground_truth) if p == 0 and gt == 0)
+    FP = sum(1 for p, gt in zip(predictions, ground_truth) if p == 1 and gt == 0)
+    FN = sum(1 for p, gt in zip(predictions, ground_truth) if p == 0 and gt == 1)
+    TP = sum(1 for p, gt in zip(predictions, ground_truth) if p == 1 and gt == 1)
+
+    return TN, FP, FN, TP
+
+
+def calculate_metrics(TN, FP, FN, TP):
+    precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+    recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+    return precision, recall, f1_score
