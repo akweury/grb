@@ -8,8 +8,7 @@ import os
 
 # List of baseline models
 baseline_models = [
-    # {"name": "ViT", "module": vit.run_vit},
-    # {"name": "ViT-Base-Patch32-384", "module": vit.run_vit},
+    {"name": "ViT-Base-Patch32-384", "module": vit.run_vit},
     {"name": "Llava", "module": llava.run_llava}
 ]
 
@@ -25,6 +24,7 @@ def evaluate_model(model_entry, principle, batch_size, data_path, device, img_nu
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate baseline models with CUDA support.")
     parser.add_argument("--principle", type=str, required=True, help="Specify the principle to filter data.")
+    parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--device_id", type=int, help="Specify GPU device ID. If not provided, CPU will be used.")
     parser.add_argument("--img_num", type=int, default=5)
     parser.add_argument("--batch_size", type=int)
@@ -41,7 +41,10 @@ if __name__ == "__main__":
 
     print(f"Starting model evaluations with data from {data_path}...")
 
-    for model in baseline_models:
-        evaluate_model(model, args.principle, args.batch_size, data_path, device, args.img_num)
+    if args.model == "llava":
+        model = baseline_models[1]
+    else:
+        model = baseline_models[0]
+    evaluate_model(model, args.principle, args.batch_size, data_path, device, args.img_num)
 
     print("All model evaluations completed.")
