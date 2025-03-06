@@ -194,7 +194,7 @@ def evaluate_llm(model, processor, test_images, logic_rules, device, principle):
     return accuracy, f1_score, precision, recall
 
 
-def run_llava(data_path, principle, batch_size, device, img_num):
+def run_llava(data_path, principle, batch_size, device, img_num, epochs):
     init_wandb(batch_size)
 
     model, processor = load_llava_model(device)

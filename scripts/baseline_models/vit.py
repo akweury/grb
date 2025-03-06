@@ -22,17 +22,16 @@ from scripts.utils import data_utils
 # BATCH_SIZE = 8  # Increase batch size for better GPU utilization  # Reduce batch size dynamically
 IMAGE_SIZE = 224  # ViT default input size
 NUM_CLASSES = 2  # Positive and Negative
-EPOCHS = 10
 ACCUMULATION_STEPS = 1  # Reduce accumulation steps for faster updates  # Gradient accumulation steps
 
 
-def init_wandb(batch_size):
+def init_wandb(batch_size, epochs):
     # Initialize Weights & Biases (WandB)
     wandb.init(project="ViT-Gestalt-Patterns", config={
         "batch_size": batch_size,
         "image_size": IMAGE_SIZE,
         "num_classes": NUM_CLASSES,
-        "epochs": EPOCHS
+        "epochs": epochs
     })
 
 
@@ -86,13 +85,13 @@ class ViTClassifier(nn.Module):
 
 
 # Training Function
-def train_vit(model, train_loader, device, checkpoint_path):
+def train_vit(model, train_loader, device, checkpoint_path, epochs):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.AdamW(model.parameters(), lr=0.001, weight_decay=5e-5, betas=(0.9, 0.999))  # Faster convergence
     scaler = torch.cuda.amp.GradScaler()  # Ensure AMP is enabled
     model.train()
 
-    for epoch in range(EPOCHS):
+    for epoch in range(epochs):
         optimizer.zero_grad()
         for step, (images, labels) in enumerate(train_loader):
             images, labels = images.to(device, non_blocking=True), labels.to(device, non_blocking=True)
@@ -172,8 +171,8 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     return accuracy, f1_score, precision, recall
 
 
-def run_vit(data_path, principle, batch_size, device, img_num):
-    init_wandb(batch_size)
+def run_vit(data_path, principle, batch_size, device, img_num, epochs):
+    init_wandb(batch_size, epochs)
     model_name = "vit_base_patch16_224"
     checkpoint_path = config.results / principle / f"{model_name}_{img_num}checkpoint.pth"
     device = torch.device(device)
@@ -195,7 +194,7 @@ def run_vit(data_path, principle, batch_size, device, img_num):
     for pattern_folder in pattern_folders:
         train_loader, num_train_images = get_dataloader(pattern_folder, batch_size, img_num)
         wandb.log({f"{principle}/num_train_images": num_train_images})
-        train_vit(model, train_loader, device, checkpoint_path)
+        train_vit(model, train_loader, device, checkpoint_path, epochs)
 
         torch.cuda.empty_cache()
 

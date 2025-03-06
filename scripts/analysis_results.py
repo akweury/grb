@@ -191,12 +191,12 @@ if __name__ == "__main__":
     # principle = "proximity"
     # principle = "similarity"
     # principle = "closure"
-    # principle = "symmetry"
-    principle = "continuity"
+    principle = "symmetry"
+    # principle = "continuity"
 
     # model_name = "Llava"
     model_name = "vit_base_patch16_224"
     if model_name == "Llava":
         analysis_llava(principle, model_name)
     else:
-        analysis_vit(principle, model_name, num=5)
+        analysis_vit(principle, model_name, num=3)
