@@ -99,6 +99,21 @@ def train_vit(model, train_loader, device, checkpoint_path):
 from sklearn.metrics import confusion_matrix
 
 
+def confusion_matrix_elements(predictions, ground_truth):
+    TN = sum(1 for p, gt in zip(predictions, ground_truth) if p == 0 and gt == 0)
+    FP = sum(1 for p, gt in zip(predictions, ground_truth) if p == 1 and gt == 0)
+    FN = sum(1 for p, gt in zip(predictions, ground_truth) if p == 0 and gt == 1)
+    TP = sum(1 for p, gt in zip(predictions, ground_truth) if p == 1 and gt == 1)
+
+    return TN, FP, FN, TP
+
+
+def calculate_metrics(TN, FP, FN, TP):
+    precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+    recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+    f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+
 def evaluate_vit(model, test_loader, device, principle, pattern_name):
     model.eval()
     correct, total = 0, 0
@@ -124,42 +139,39 @@ def evaluate_vit(model, test_loader, device, principle, pattern_name):
     # Accuracy Calculation
     accuracy = 100 * correct / total
 
-    # Compute Confusion Matrix for [Negative (0), Positive (1)]
-    cm = confusion_matrix(all_labels, all_predictions, labels=[0, 1])
+    TN, FP, FN, TP = confusion_matrix_elements(all_predictions, all_labels)
+    precision, recall, f1_score = calculate_metrics(TN, FP, FN, TP)
 
-    # Extract TN, FP, FN, TP
-    if cm.shape == (2, 2):  # Ensure valid shape
-        TN, FP, FN, TP = cm.ravel()
-    else:
-        TN, FP, FN, TP = 0, 0, 0, 0  # Handle cases where confusion matrix is not full
-
+    print(f"TN: {TN}, FP: {FP}, FN: {FN}, TP: {TP}")
+    # print(f"Precision: {precision:.4f}")
+    # print(f"Recall: {recall:.4f}")
+    # print(f"F1-score: {f1_score:.4f}")
     # Manual Precision and Recall Calculation
-    precision = TP / (TP + FP) if (TP + FP) > 0 else 0  # Precision = TP / (TP + FP)
-    recall = TP / (TP + FN) if (TP + FN) > 0 else 0  # Recall = TP / (TP + FN)
-
-    # Manual F1 Score Calculation
-    if precision + recall > 0:
-        f1 = 2 * (precision * recall) / (precision + recall)
-    else:
-        f1 = 0  # Avoid division by zero
+    # precision = TP / (TP + FP) if (TP + FP) > 0 else 0  # Precision = TP / (TP + FP)
+    # recall = TP / (TP + FN) if (TP + FN) > 0 else 0  # Recall = TP / (TP + FN)
+    #
+    # # Manual F1 Score Calculation
+    # if precision + recall > 0:
+    #     f1 = 2 * (precision * recall) / (precision + recall)
+    # else:
+    #     f1 = 0  # Avoid division by zero
 
     # Log results
     wandb.log({
         f"{principle}/test_accuracy": accuracy,
-        f"{principle}/f1_score": f1,
+        f"{principle}/f1_score": f1_score,
         f"{principle}/precision": precision,
         f"{principle}/recall": recall
     })
 
     # Print metrics
     print(
-        f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
+        f"({principle}) Test Accuracy for {pattern_name}: {accuracy:.2f}% | F1 Score: {f1_score:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f}")
 
-    print(f"Confusion Matrix:\n{cm}")
     print(f"True Negatives (TN): {TN}, False Positives (FP): {FP}")
     print(f"False Negatives (FN): {FN}, True Positives (TP): {TP}")
 
-    return accuracy, f1, precision, recall
+    return accuracy, f1_score, precision, recall
 
 
 def run_vit(data_path, principle, batch_size, device, img_num):

@@ -75,9 +75,9 @@ def analysis_llava(principle, model_name):
                                     dataframe=formatted_performance_table)
 
 
-def analysis_vit(principle, model_name):
+def analysis_vit(principle, model_name, num):
     path = config.results / principle
-    json_path = path / f"{model_name}_evaluation_results.json"
+    json_path = path / f"{model_name}_{num}_evaluation_results.json"
     data = json.load(open(json_path, "r"))
 
     # Convert JSON to DataFrame
@@ -185,8 +185,8 @@ def analysis_vit(principle, model_name):
 
 if __name__ == "__main__":
     # principle = "symmetry"
-    principle = "continuity"
-    # principle = "proximity"
+    # principle = "continuity"
+    principle = "proximity"
     # principle = "similarity"
     # principle = "closure"
     # model_name = "Llava"
@@ -194,4 +194,4 @@ if __name__ == "__main__":
     if model_name == "Llava":
         analysis_llava(principle, model_name)
     else:
-        analysis_vit(principle, model_name)
+        analysis_vit(principle, model_name, num=100)
