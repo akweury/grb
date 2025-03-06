@@ -12,6 +12,7 @@ import json
 import wandb
 from pathlib import Path
 from torch.utils.data import DataLoader, Subset
+from collections import defaultdict
 
 from scripts import config
 
@@ -37,20 +38,31 @@ def init_wandb(batch_size):
 
 def get_dataloader(data_dir, batch_size, img_num, num_workers=2, pin_memory=True, prefetch_factor=None):
     transform = transforms.Compose([
-        transforms.Resize(224), transforms.CenterCrop(IMAGE_SIZE),
+        transforms.Resize(224),
+        transforms.CenterCrop(IMAGE_SIZE),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
-    dataset = datasets.ImageFolder(root=data_dir, transform=transform)
-    total_images = len(dataset)
 
-    # Randomly select 5 unique indices from the dataset
-    selected_indices = random.sample(range(total_images), min(img_num, total_images))
+    dataset = datasets.ImageFolder(root=data_dir, transform=transform)
+
+    # Group images by class
+    class_to_indices = defaultdict(list)
+    for idx, (image_path, label) in enumerate(dataset.samples):
+        class_to_indices[label].append(idx)
+
+    # Sample img_num images from each class
+    selected_indices = []
+    for label, indices in class_to_indices.items():
+        if len(indices) < img_num:
+            raise ValueError(f"Not enough images in class {label}. Required: {img_num}, Found: {len(indices)}")
+        selected_indices.extend(random.sample(indices, img_num))
+
     subset_dataset = Subset(dataset, selected_indices)
+
     return DataLoader(subset_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers,
                       pin_memory=pin_memory, prefetch_factor=prefetch_factor,
                       persistent_workers=(num_workers > 0)), len(subset_dataset)
-
 
 # Load Pretrained ViT Model
 class ViTClassifier(nn.Module):
