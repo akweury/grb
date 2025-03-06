@@ -44,3 +44,13 @@ if not os.path.exists(scripts):
 results = root / "data" / "results"
 if not os.path.exists(results):
     os.makedirs(results)
+
+# -------------- categories -----------------------
+categories = {
+    "proximity": ["red_triangle", "grid", "fixed_props", "big_small", "circle_features"],
+    "similarity": ["fixed_number", "pacman", "palette"],
+    "closure": ["big_triangle", "big_square", "big_circle", "feature_triangle", "feature_square", "feature_circle"],
+    "symmetry": ["solar_sys", "symmetry_circle"],
+    "continuity": ["one_split_n", "two_splines", "a_splines", "u_splines", "x_splines"]
+
+}

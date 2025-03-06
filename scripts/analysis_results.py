@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as stats
 import torch
+import seaborn as sns
 
 
 def analysis_llava(principle, model_name):
@@ -75,27 +76,104 @@ def analysis_llava(principle, model_name):
                                     dataframe=formatted_performance_table)
 
 
-def analysis_vit(principle, model_name, num):
-    path = config.results / principle
-    json_path = path / f"{model_name}_{num}_evaluation_results.json"
-    data = json.load(open(json_path, "r"))
+def draw_f1_heat_map(path, csv_files, model_names, principle):
+    """
+    Draws and saves an F1 score heatmap showing the average F1 score per category for multiple models.
 
+    Args:
+        path (Path): The directory where the heatmap will be saved.
+        csv_files (list): List of file paths to CSV files containing F1 scores.
+        model_names (list): List of model names corresponding to the CSV files.
+    """
+
+    # Define task categories
+    categories = config.categories[principle]
+    # Function to categorize tasks
+    def categorize_task(task_name):
+        for category in categories:
+            if category in task_name:
+                return category
+
+    # Dictionary to store F1 scores for each model
+    category_f1_scores = {}
+
+    # Process each CSV file
+    for csv_file, model_name in zip(csv_files, model_names):
+        df = pd.read_csv(csv_file, index_col=0)  # Use first column as index (task names)
+        df["Category"] = df.index.map(categorize_task)
+        category_avg_f1 = df.groupby("Category")["F1 Score"].mean()
+        category_f1_scores[model_name] = category_avg_f1  # Store results
+
+    # Convert dictionary to DataFrame for heatmap
+    heatmap_data = pd.DataFrame(category_f1_scores)
+
+    # Plot the heatmap
+    plt.figure(figsize=(8, 5))
+    sns.heatmap(heatmap_data, cmap="coolwarm", annot=True, fmt=".2f", linewidths=0.5, cbar_kws={'label': 'F1 Score'})
+
+    # Titles and labels
+    plt.title(f"Average F1 Score by Category (Principle: {principle})", fontsize=14, fontweight='bold')
+    plt.xlabel("Models", fontsize=12)
+    plt.ylabel("Category", fontsize=12)
+
+    # Show the heatmap
+    plt.tight_layout()
+    # Save the heatmap as a PDF file
+    heat_map_filename = path / f"{principle}_f1_heat_map.pdf"
+    plt.savefig(heat_map_filename, format="pdf")
+
+    print(f"Heatmap saved to: {heat_map_filename}")
+
+
+def json_to_csv(json_data, principle, csv_file_path):
     # Convert JSON to DataFrame
-    df = pd.DataFrame(data[principle]).T
+    df = pd.DataFrame(json_data[principle]).T
     df["accuracy"] /= 100  # Convert accuracy to percentage
-
     # Calculate performance statistics
-    mean_accuracy = df["accuracy"].mean()
+    # mean_accuracy = df["accuracy"].mean()
     precision = df["precision"].values
     recall = df["recall"].values
-    f1_score = 2 * (precision * recall) / ((precision + recall)+1e-20)
+    f1_score = 2 * (precision * recall) / ((precision + recall) + 1e-20)
+    # Save F1-score to CSV with row names (index)
+    f1_score_df = pd.DataFrame({"F1 Score": f1_score}, index=df.index)
+    f1_score_df.to_csv(csv_file_path, index=True)
+    print(f"F1-score data saved to {csv_file_path}")
+    return df, f1_score
 
+
+def json_to_csv_llava(json_data, principle, csv_file_path):
+    f1_score = torch.tensor([v["f1_score"] for k, v in json_data.items()])
+    # Convert JSON to DataFrame
+    # Remove the "logic_rules" field from each entry
+    for key in json_data.keys():
+        if "logic_rules" in json_data[key]:
+            del json_data[key]["logic_rules"]
+
+    # Convert to DataFrame
+    df = pd.DataFrame.from_dict(json_data, orient="index")
+
+    df["accuracy"] /= 100  # Convert accuracy to percentage
+    # Calculate performance statistics
+    # mean_accuracy = df["accuracy"].mean()
+    precision = df["precision"].values
+    recall = df["recall"].values
+    f1_score = 2 * (precision * recall) / ((precision + recall) + 1e-20)
+    # Save F1-score to CSV with row names (index)
+    f1_score_df = pd.DataFrame({"F1 Score": f1_score}, index=df.index)
+    f1_score_df.to_csv(csv_file_path, index=True)
+    print(f"F1-score data saved to {csv_file_path}")
+    return df, f1_score
+
+
+def draw_bar_chart(df, f1_score, model_name, path):
+    f1_score = np.nan_to_num(f1_score)
     mean_f1 = f1_score.mean()
+    mean_accuracy = df["accuracy"].mean()
     mean_precision = df["precision"].mean()
     mean_recall = df["recall"].mean()
 
     std_accuracy = df["accuracy"].std()
-    std_f1 = df["f1_score"].std()
+    std_f1 = f1_score.std()
     std_precision = df["precision"].std()
     std_recall = df["recall"].std()
 
@@ -141,7 +219,7 @@ def analysis_vit(principle, model_name, num):
     axes[3].legend()
 
     # Save the figure as PDF
-    pdf_filename = f"{principle}_{model_name}_model_performance_charts.pdf"
+    pdf_filename = f"{model_name}_model_performance_charts.pdf"
     plt.tight_layout()
     plt.savefig(path / pdf_filename, format="pdf")
 
@@ -187,6 +265,24 @@ def analysis_vit(principle, model_name, num):
                                     dataframe=formatted_performance_table)
 
 
+def analysis_models(principle, model_names):
+    path = config.results / principle
+    csv_files = []
+    for model_name in model_names:
+        json_path = path / f"{model_name}.json"
+        data = json.load(open(json_path, "r"))
+        csv_file_name = path / f"{model_name}_f1_scores.csv"
+        if model_name == "llava":
+            df, f1_score = json_to_csv_llava(data, principle, csv_file_name)
+
+        else:
+            df, f1_score = json_to_csv(data, principle, csv_file_name)
+        draw_bar_chart(df, f1_score, model_name, path)
+        csv_files.append(csv_file_name)
+
+    draw_f1_heat_map(path, csv_files, model_names, principle)
+
+
 if __name__ == "__main__":
     # principle = "proximity"
     # principle = "similarity"
@@ -195,8 +291,6 @@ if __name__ == "__main__":
     # principle = "continuity"
 
     # model_name = "Llava"
-    model_name = "vit_base_patch16_224"
-    if model_name == "Llava":
-        analysis_llava(principle, model_name)
-    else:
-        analysis_vit(principle, model_name, num=3)
+    model_names = ["vit_3", "vit_100", "llava"]
+
+    analysis_models(principle, model_names)

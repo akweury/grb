@@ -235,7 +235,7 @@ def run_llava(data_path, principle, batch_size, device, img_num, epochs):
     avg_f1 = sum(total_f1) / len(total_f1) if total_f1 else 0
 
     results["average"] = {"accuracy": avg_accuracy, "f1_score": avg_f1}
-    results_path = Path(data_path) / "evaluation_results_llava.json"
+    results_path = Path(data_path) / f"llava_{principle}.json"
     with open(results_path, "w") as json_file:
         json.dump(results, json_file, indent=4)
 
