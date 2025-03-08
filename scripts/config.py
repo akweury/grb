@@ -6,8 +6,8 @@ import matplotlib
 root = Path(__file__).parents[1]
 
 # settings
-num_samples = 100
-img_width = 224
+num_samples = 10
+img_width = 1024
 
 # -------------------- shape settings --------------------
 bk_shapes = ["none", "triangle", "square", "circle"]
@@ -50,7 +50,7 @@ categories = {
     "proximity": ["red_triangle", "grid", "fixed_props", "big_small", "circle_features"],
     "similarity": ["fixed_number", "pacman", "palette"],
     "closure": ["big_triangle", "big_square", "big_circle", "feature_triangle", "feature_square", "feature_circle"],
-    "symmetry": ["solar_sys", "symmetry_circle"],
+    "symmetry": ["soloar_sys", "symmetry_circle"],
     "continuity": ["one_split_n", "two_splines", "a_splines", "u_splines", "x_splines"]
 
 }

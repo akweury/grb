@@ -232,7 +232,7 @@ def get_random_positions(obj_quantity, obj_size):
 
 
 def random_shift_point(position, d_min, d_max):
-    x,y = position
+    x, y = position
     if d_min > d_max or d_min < 0 or d_max < 0:
         raise ValueError("Ensure 0 <= d_min <= d_max.")
 
@@ -247,3 +247,24 @@ def random_shift_point(position, d_min, d_max):
     new_y = y + distance * math.sin(angle)
 
     return [new_x, new_y]
+
+
+def get_almost_symmetry_positions(centers, radius, obj_nums):
+    all_positions = []
+    for g_i in range(len(centers)):
+        group_positions = []
+        num_points = obj_nums[g_i]
+        angle = random.uniform(0, math.pi)
+
+        for p_i in range(int(num_points)):
+            angle_offset = 0.3 * p_i
+            shifted_angle = angle + angle_offset
+            x_right = 0.5 + radius * math.cos(shifted_angle)
+            x_left = 0.5 - radius * math.cos(shifted_angle)
+
+            y = 0.5 + radius * math.sin(shifted_angle)
+            group_positions.append((x_right, y + random.uniform(0.05, 0.1)))
+            group_positions.append((x_left, y + random.uniform(-0.1, 0.05)))
+        all_positions.append(group_positions)
+
+    return all_positions

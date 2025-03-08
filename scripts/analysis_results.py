@@ -1,5 +1,5 @@
 # Created by jing at 03.03.25
-
+import os
 from scripts import config
 import ace_tools_open as tools
 import json
@@ -76,56 +76,184 @@ def analysis_llava(principle, model_name):
                                     dataframe=formatted_performance_table)
 
 
-def draw_f1_heat_map(path, csv_files, model_names, principle):
-    """
-    Draws and saves an F1 score heatmap showing the average F1 score per category for multiple models.
+# def draw_f1_heat_map(csv_files, model_names, gestalt_principles):
+#     """
+#     Draws and saves a heatmap showing F1 scores of models across tasks,
+#     grouping tasks into 5 areas corresponding to different Gestalt principles.
+#
+#     Args:
+#         csv_files (dict): Dictionary where keys are Gestalt principles and values are lists of CSV files.
+#         model_names (list): List of model names.
+#         gestalt_principles (dict): Dictionary mapping Gestalt principles to column ranges.
+#     """
+#
+#     path = config.results
+#     category_f1_scores = {model: pd.Series(dtype=float) for model in model_names}
+#
+#     for principle, principle_csv_files in csv_files.items():
+#         for file in principle_csv_files:
+#             df = pd.read_csv(file, index_col=0)  # Load CSV and set first column as index (model names)
+#
+#             # Categorize tasks
+#             def categorize_task(task_name):
+#                 for category in config.categories[principle]:
+#                     if category in task_name:
+#                         return category
+#
+#             # Identify model name from file name
+#             if "vit_3" in file.name:
+#                 model_name = "vit_3"
+#             elif "vit_100" in file.name:
+#                 model_name = "vit_100"
+#             else:
+#                 model_name = "llava"
+#
+#             df["Category"] = df.index.map(categorize_task)
+#             category_avg_f1 = df.groupby("Category")["F1 Score"].mean()
+#             category_f1_scores[model_name] = pd.concat([category_f1_scores[model_name], category_avg_f1])
+#
+#     # Convert dictionary to DataFrame for heatmap
+#     heatmap_data = pd.DataFrame(category_f1_scores)
+#
+#     # Plot the heatmap
+#     plt.figure(figsize=(12, 6))
+#     ax = sns.heatmap(heatmap_data.T, cmap="coolwarm", annot=True, fmt=".2f", linewidths=0.8, cbar_kws={'label': 'F1 Score'})
+#
+#     # **Add vertical separators for Gestalt principles**
+#     column_positions = [0]  # Start at the first column
+#     col_names = list(heatmap_data.columns)
+#
+#     # Compute column splits based on Gestalt principles
+#     for principle, categories in gestalt_principles.items():
+#         end_col_idx = max([col_names.index(cat) for cat in categories if cat in col_names], default=0)
+#         column_positions.append(end_col_idx + 1)
+#
+#     # Draw vertical lines between sections
+#     for pos in column_positions[1:-1]:  # Avoid the last position
+#         ax.axvline(pos, color='black', linestyle='dashed', linewidth=1.5)
+#
+#     # **Label each Gestalt principle in the center of its area**
+#     mid_positions = [(column_positions[i] + column_positions[i+1]) / 2 for i in range(len(column_positions)-1)]
+#     plt.xticks(mid_positions, list(gestalt_principles.keys()), fontsize=12, rotation=30)
+#
+#     # Labels
+#     plt.xlabel("Gestalt Principles", fontsize=12)
+#     plt.ylabel("Models", fontsize=12)
+#
+#     # Save the heatmap as a PDF file
+#     heat_map_filename = path / "f1_heat_map.pdf"
+#     plt.tight_layout()
+#     plt.savefig(heat_map_filename, format="pdf", bbox_inches="tight")
+#
+#     print(f"Heatmap saved to: {heat_map_filename}")
 
-    Args:
-        path (Path): The directory where the heatmap will be saved.
-        csv_files (list): List of file paths to CSV files containing F1 scores.
-        model_names (list): List of model names corresponding to the CSV files.
-    """
+
+def draw_f1_heat_map(csv_files, model_names, gestalt_principles):
+    # Function to categorize tasks
 
     # Define task categories
-    categories = config.categories[principle]
-    # Function to categorize tasks
-    def categorize_task(task_name):
-        for category in categories:
-            if category in task_name:
-                return category
+    path = config.results
 
-    # Dictionary to store F1 scores for each model
-    category_f1_scores = {}
+    df_list = []
+    category_f1_scores = {"vit_3": pd.Series(dtype=float),
+                          "vit_100": pd.Series(dtype=float),
+                          "llava": pd.Series(dtype=float),
+                          "NEUMANN": pd.Series(dtype=float)}
 
-    # Process each CSV file
-    for csv_file, model_name in zip(csv_files, model_names):
-        df = pd.read_csv(csv_file, index_col=0)  # Use first column as index (task names)
-        df["Category"] = df.index.map(categorize_task)
-        category_avg_f1 = df.groupby("Category")["F1 Score"].mean()
-        category_f1_scores[model_name] = category_avg_f1  # Store results
+    for principle, principle_csv_files in csv_files.items():
+        tmp_df = pd.read_csv(principle_csv_files[0], index_col=0)  # Load CSV and set first column as index (model names)
+        for file in principle_csv_files:
+            df = pd.read_csv(file, index_col=0)  # Load CSV and set first column as index (model names)
+            def categorize_task(task_name):
+                for category in categories:
+                    if category in task_name:
+                        return category
 
+            if "vit_3" in file.name:
+                model_name = "vit_3"
+            elif "vit_100" in file.name:
+                model_name = "vit_100"
+            elif "llava" in file.name:
+                model_name = "llava"
+            else:
+                model_name = "NEUMANN"
+                df = df.reindex(tmp_df.index, fill_value=0)
+            categories = config.categories[principle]
+            df["Category"] = df.index.map(categorize_task)
+            category_avg_f1 = df.groupby("Category")["F1 Score"].mean()
+            category_f1_scores[model_name] = pd.concat(
+                [category_f1_scores[model_name], category_avg_f1])  # Store results
     # Convert dictionary to DataFrame for heatmap
     heatmap_data = pd.DataFrame(category_f1_scores)
 
-    # Plot the heatmap
-    plt.figure(figsize=(8, 5))
-    sns.heatmap(heatmap_data, cmap="coolwarm", annot=True, fmt=".2f", linewidths=0.5, cbar_kws={'label': 'F1 Score'})
+    # Adjust figure size dynamically based on the number of columns
+    plt.figure(figsize=(max(15, len(heatmap_data.columns) * 1.5), 4))  # Auto-scale width
+    ax = sns.heatmap(heatmap_data.T, cmap="coolwarm", annot=True, fmt=".2f", linewidths=0.8,
+                     cbar_kws={'label': 'F1 Score'})
+    # sns.heatmap(heatmap_data.T, cmap="coolwarm", annot=True, fmt=".2f", linewidths=0.8, cbar_kws={'label': 'F1 Score'})
+    # Add second level of labels (Gestalt principles)
+    ax2 = ax.twiny()  # Create a secondary x-axis
 
-    # Titles and labels
-    plt.title(f"Average F1 Score by Category (Principle: {principle})", fontsize=14, fontweight='bold')
-    plt.xlabel("Models", fontsize=12)
-    plt.ylabel("Category", fontsize=12)
+    counts = 0
+    principle_pos = []
+    principle_names = []
+    # Compute column splits based on Gestalt principles
+    for principle, categories in gestalt_principles.items():
+        principle_names.append(principle)
+        principle_pos.append(counts + len(categories) / 2)
+        if principle == "continuity": continue
+        # **Add vertical separators for Gestalt principles**
+        column_positions = counts  # Start at the first column
+        col_names = list(heatmap_data.columns)
 
-    # Show the heatmap
+        # Draw vertical lines between sections
+        pos = int(counts + len(categories))
+        ax.axvline(pos, color='black', linestyle='dashed', linewidth=1.5)
+
+        # **Label each Gestalt principle in the center of its area**
+
+        # plt.xticks(pos, list(gestalt_principles.keys()), fontsize=12, rotation=30)
+        counts += len(categories)
+    # Increase the font size of x ticks below the chart
+    # Increase the font size of x-ticks below the chart
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize=16,rotation=30, ha="right")
+
+    ax2.set_xticks(principle_pos)
+    ax2.set_xticklabels(principle_names, rotation=0, fontsize=12, fontweight="bold")
+    ax2.set_xlim(ax.get_xlim())  # Align with main x-axis
+    # ax2.set_xlabel("Gestalt Principles", fontsize=12, fontweight="bold")
+
+    # plt.xlabel("Category", fontsize=12)
+    plt.ylabel("Models", fontsize=12)
+
+    # Adjust the layout to remove extra space
     plt.tight_layout()
-    # Save the heatmap as a PDF file
-    heat_map_filename = path / f"{principle}_f1_heat_map.pdf"
-    plt.savefig(heat_map_filename, format="pdf")
+    plt.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.2)  # Reduce right margin
+
+    # Save the heatmap
+    heat_map_filename = path / f"f1_heat_map.pdf"
+    plt.savefig(heat_map_filename, format="pdf", bbox_inches="tight")  # Ensures no extra space
 
     print(f"Heatmap saved to: {heat_map_filename}")
 
 
 def json_to_csv(json_data, principle, csv_file_path):
+    # Convert JSON to DataFrame
+    df = pd.DataFrame(json_data[principle]).T
+    df["accuracy"] /= 100  # Convert accuracy to percentage
+    # Calculate performance statistics
+    # mean_accuracy = df["accuracy"].mean()
+    precision = df["precision"].values
+    recall = df["recall"].values
+    f1_score = 2 * (precision * recall) / ((precision + recall) + 1e-20)
+    # Save F1-score to CSV with row names (index)
+    f1_score_df = pd.DataFrame({"F1 Score": f1_score}, index=df.index)
+    f1_score_df.to_csv(csv_file_path, index=True)
+    print(f"F1-score data saved to {csv_file_path}")
+    return df, f1_score
+
+
+def json_to_csv_NEUMANN(json_data, principle, csv_file_path):
     # Convert JSON to DataFrame
     df = pd.DataFrame(json_data[principle]).T
     df["accuracy"] /= 100  # Convert accuracy to percentage
@@ -165,7 +293,7 @@ def json_to_csv_llava(json_data, principle, csv_file_path):
     return df, f1_score
 
 
-def draw_bar_chart(df, f1_score, model_name, path):
+def draw_bar_chart(df, f1_score, model_name, path, principle):
     f1_score = np.nan_to_num(f1_score)
     mean_f1 = f1_score.mean()
     mean_accuracy = df["accuracy"].mean()
@@ -265,32 +393,46 @@ def draw_bar_chart(df, f1_score, model_name, path):
                                     dataframe=formatted_performance_table)
 
 
-def analysis_models(principle, model_names):
-    path = config.results / principle
-    csv_files = []
-    for model_name in model_names:
-        json_path = path / f"{model_name}.json"
+def analysis_models(principles, model_names):
+    csv_files = {}
+    for principle in principles:
+        csv_files[principle] = []
+        path = config.results / principle
+
+        for model_name in model_names:
+            json_path = path / f"{model_name}.json"
+            data = json.load(open(json_path, "r"))
+            csv_file_name = path / f"{model_name}_f1_scores.csv"
+            if not os.path.exists(csv_file_name):
+                if model_name == "llava":
+                    df, f1_score = json_to_csv_llava(data, principle, csv_file_name)
+                else:
+                    df, f1_score = json_to_csv(data, principle, csv_file_name)
+                draw_bar_chart(df, f1_score, model_name, path, principle)
+            csv_files[principle].append(csv_file_name)
+
+        json_path = config.results / "experiment_results_NEUMANN.json"
         data = json.load(open(json_path, "r"))
-        csv_file_name = path / f"{model_name}_f1_scores.csv"
-        if model_name == "llava":
-            df, f1_score = json_to_csv_llava(data, principle, csv_file_name)
+        csv_file_name = path / f"NEUMANN_f1_scores.csv"
+        if not os.path.exists(csv_file_name):
+            df, f1_score = json_to_csv_NEUMANN(data, principle, csv_file_name)
+            # draw_bar_chart(df, f1_score, "NEUMANN", path, principle)
+        csv_files[principle].append(csv_file_name)
 
-        else:
-            df, f1_score = json_to_csv(data, principle, csv_file_name)
-        draw_bar_chart(df, f1_score, model_name, path)
-        csv_files.append(csv_file_name)
-
-    draw_f1_heat_map(path, csv_files, model_names, principle)
+    model_names.append("NEUMANN")
+    draw_f1_heat_map(csv_files, model_names, config.categories)
 
 
 if __name__ == "__main__":
-    # principle = "proximity"
-    # principle = "similarity"
-    # principle = "closure"
-    principle = "symmetry"
-    # principle = "continuity"
+    principles = [
+        "proximity",
+        "similarity",
+        "closure",
+        "symmetry",
+        "continuity"
+    ]
 
     # model_name = "Llava"
     model_names = ["vit_3", "vit_100", "llava"]
 
-    analysis_models(principle, model_names)
+    analysis_models(principles, model_names)
