@@ -1,7 +1,5 @@
+## (Back to [project introduction](../README.md))
 
-# Gestalt Reasoning Benchmark
-
-This repository provides an overview of the Gestalt Reasoning Benchmark, which evaluates computational models on their ability to recognize and reason using Gestalt principles. The benchmark consists of multiple tasks, each inspired by a fundamental Gestalt principle.
 
 ## Benchmark Structure
 Each task in the benchmark follows this structure:

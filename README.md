@@ -1,3 +1,5 @@
+# Category Example: [Click Here](scripts/README.md)
+
 # Gestalt Pattern Reasoning Benchmark
 ![alt text](intro.png "Title")
 ## Overview
