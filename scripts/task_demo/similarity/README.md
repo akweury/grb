@@ -1,3 +1,5 @@
+### (Back to [Category](../../README.md))
+
 # Similarity: Fixed Number
 The tasks in this category follows the principle _similarity_. The base pattern shows 2-4 clusters, 
 the objects of each cluster follow specific logic rules.
@@ -54,6 +56,6 @@ In positive examples, there are 1-2 of similarity groups randomly. For each grou
 </p>
 
 
-
+### (Back to [Category](../../README.md))
 
 

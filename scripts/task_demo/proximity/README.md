@@ -1,21 +1,23 @@
-# Proximity: red_triangle
+### (Back to [Category](../../README.md))
+
+# Proximity: Red Triangle
 The tasks in this category follows the principle _proximity_. The base pattern shows 2-4 clusters, 
 the objects of each cluster follow specific logic rules.
 ## Example
 In positive examples, there are two groups of proximity clusters, all the clusters contains at least one triangle.
 <p align="left">
   <span style="color: green; font-weight: bold;">Positive:</span>
-  <img src="001_non_overlap_red_triangle_shape_2_s_all/positive/00000.png" width="10%">
-  <img src="001_non_overlap_red_triangle_shape_2_s_all/positive/00001.png" width="10%">
-  <img src="001_non_overlap_red_triangle_shape_2_s_all/positive/00002.png" width="10%">
+  <img src="001_non_overlap_red_triangle_shape_2_s_all/positive/00000.png" width="20%">
+  <img src="001_non_overlap_red_triangle_shape_2_s_all/positive/00001.png" width="20%">
+  <img src="001_non_overlap_red_triangle_shape_2_s_all/positive/00002.png" width="20%">
 
   <span style="color: red; font-weight: bold;">Negative:</span>
-  <img src="001_non_overlap_red_triangle_shape_2_s_all/negative/00000.png" width="10%">
-  <img src="001_non_overlap_red_triangle_shape_2_s_all/negative/00001.png" width="10%">
-  <img src="001_non_overlap_red_triangle_shape_2_s_all/negative/00002.png" width="10%">
+  <img src="001_non_overlap_red_triangle_shape_2_s_all/negative/00000.png" width="20%">
+  <img src="001_non_overlap_red_triangle_shape_2_s_all/negative/00001.png" width="20%">
+  <img src="001_non_overlap_red_triangle_shape_2_s_all/negative/00002.png" width="20%">
 </p>
 
-# Proximity: grid
+# Proximity: Grid
 The tasks in this category follows the principle _proximity_. The base pattern shows 2-4 clusters, 
 the objects of each cluster follow specific logic rules.
 ## Example
@@ -23,14 +25,14 @@ In positive examples, there are two groups of proximity clusters, arranged as a 
 In the negative examples, there can be three groups of proximity clusters.
 <p align="left">
   <span style="color: green; font-weight: bold;">Positive:</span>
-  <img src="066_non_overlap_grid_color_2_l/positive/00000.png" width="10%">
-  <img src="066_non_overlap_grid_color_2_l/positive/00001.png" width="10%">
-  <img src="066_non_overlap_grid_color_2_l/positive/00002.png" width="10%">
+  <img src="066_non_overlap_grid_color_2_l/positive/00000.png" width="20%">
+  <img src="066_non_overlap_grid_color_2_l/positive/00001.png" width="20%">
+  <img src="066_non_overlap_grid_color_2_l/positive/00002.png" width="20%">
 
   <span style="color: red; font-weight: bold;">Negative:</span>
-  <img src="066_non_overlap_grid_color_2_l/negative/00000.png" width="10%">
-  <img src="066_non_overlap_grid_color_2_l/negative/00001.png" width="10%">
-  <img src="066_non_overlap_grid_color_2_l/negative/00002.png" width="10%">
+  <img src="066_non_overlap_grid_color_2_l/negative/00000.png" width="20%">
+  <img src="066_non_overlap_grid_color_2_l/negative/00001.png" width="20%">
+  <img src="066_non_overlap_grid_color_2_l/negative/00002.png" width="20%">
 </p>
 
 
@@ -42,14 +44,14 @@ In positive examples, there are 2-4 groups of proximity clusters randomly. Each 
 
 <p align="left">
   <span style="color: green; font-weight: bold;">Positive:</span>
-  <img src="085_non_overlap_fixed_props_color_s/positive/00000.png" width="10%">
-  <img src="085_non_overlap_fixed_props_color_s/positive/00001.png" width="10%">
-  <img src="085_non_overlap_fixed_props_color_s/positive/00002.png" width="10%">
+  <img src="085_non_overlap_fixed_props_color_s/positive/00000.png" width="20%">
+  <img src="085_non_overlap_fixed_props_color_s/positive/00001.png" width="20%">
+  <img src="085_non_overlap_fixed_props_color_s/positive/00002.png" width="20%">
 
   <span style="color: red; font-weight: bold;">Negative:</span>
-  <img src="085_non_overlap_fixed_props_color_s/negative/00000.png" width="10%">
-  <img src="085_non_overlap_fixed_props_color_s/negative/00001.png" width="10%">
-  <img src="085_non_overlap_fixed_props_color_s/negative/00002.png" width="10%">
+  <img src="085_non_overlap_fixed_props_color_s/negative/00000.png" width="20%">
+  <img src="085_non_overlap_fixed_props_color_s/negative/00001.png" width="20%">
+  <img src="085_non_overlap_fixed_props_color_s/negative/00002.png" width="20%">
 </p>
 
 
@@ -62,14 +64,14 @@ Besides, all the big objects are triangles.
 
 <p align="left">
   <span style="color: green; font-weight: bold;">Positive:</span>
-  <img src="093_overlap_big_small_shape_2_l/positive/00000.png" width="10%">
-  <img src="093_overlap_big_small_shape_2_l/positive/00001.png" width="10%">
-  <img src="093_overlap_big_small_shape_2_l/positive/00002.png" width="10%">
+  <img src="093_overlap_big_small_shape_2_l/positive/00000.png" width="20%">
+  <img src="093_overlap_big_small_shape_2_l/positive/00001.png" width="20%">
+  <img src="093_overlap_big_small_shape_2_l/positive/00002.png" width="20%">
 
   <span style="color: red; font-weight: bold;">Negative:</span>
-  <img src="093_overlap_big_small_shape_2_l/negative/00000.png" width="10%">
-  <img src="093_overlap_big_small_shape_2_l/negative/00001.png" width="10%">
-  <img src="093_overlap_big_small_shape_2_l/negative/00002.png" width="10%">
+  <img src="093_overlap_big_small_shape_2_l/negative/00000.png" width="20%">
+  <img src="093_overlap_big_small_shape_2_l/negative/00001.png" width="20%">
+  <img src="093_overlap_big_small_shape_2_l/negative/00002.png" width="20%">
 </p>
 
 
@@ -82,16 +84,16 @@ The objects in each cluster share the same color.
 
 <p align="left">
   <span style="color: green; font-weight: bold;">Positive:</span>
-  <img src="207_overlap_circle_features_color_4_l_1.2/positive/00000.png" width="10%">
-  <img src="207_overlap_circle_features_color_4_l_1.2/positive/00001.png" width="10%">
-  <img src="207_overlap_circle_features_color_4_l_1.2/positive/00002.png" width="10%">
+  <img src="207_overlap_circle_features_color_4_l_1.2/positive/00000.png" width="20%">
+  <img src="207_overlap_circle_features_color_4_l_1.2/positive/00001.png" width="20%">
+  <img src="207_overlap_circle_features_color_4_l_1.2/positive/00002.png" width="20%">
 
   <span style="color: red; font-weight: bold;">Negative:</span>
-  <img src="207_overlap_circle_features_color_4_l_1.2/negative/00000.png" width="10%">
-  <img src="207_overlap_circle_features_color_4_l_1.2/negative/00001.png" width="10%">
-  <img src="207_overlap_circle_features_color_4_l_1.2/negative/00002.png" width="10%">
+  <img src="207_overlap_circle_features_color_4_l_1.2/negative/00000.png" width="20%">
+  <img src="207_overlap_circle_features_color_4_l_1.2/negative/00001.png" width="20%">
+  <img src="207_overlap_circle_features_color_4_l_1.2/negative/00002.png" width="20%">
 </p>
 
-
+### (Back to [Category](../../README.md))
 
 

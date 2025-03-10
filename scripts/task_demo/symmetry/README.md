@@ -1,3 +1,5 @@
+### (Back to [Category](../../README.md))
+
 # Symmetry: Solar Sys
 The tasks in this category follows the principle _Symmetry_. The base pattern shows 1-4 clusters, 
 the objects of each cluster follow specific logic rules.
@@ -38,5 +40,5 @@ Several small objects are placed at the circumference of the circle.
 
 
 
-
+### (Back to [Category](../../README.md))
 

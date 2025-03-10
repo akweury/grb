@@ -1,3 +1,5 @@
+### (Back to [Category](../../README.md))
+
 # Continuity: One Split N
 The tasks in this category follows the principle _Continuity_. The base pattern shows 2 clusters, 
 the objects of each cluster follow specific logic rules.
@@ -100,3 +102,4 @@ The objects in each group has same color.
 </p>
 
 
+### (Back to [Category](../../README.md))
