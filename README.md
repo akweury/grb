@@ -5,72 +5,9 @@
 ## Overview
 This repository contains a dataset and benchmarking framework for **Gestalt pattern reasoning**. The dataset consists of thousands of procedurally generated visual patterns based on **Gestalt principles**, including proximity, similarity, closure, symmetry, and continuity. The benchmark is designed to evaluate both human and AI performance in recognizing and reasoning about these patterns.
 
-## File Structure
-```
-gestalt_benchmark/
-│── data/
-│   │── raw_patterns/         # Unprocessed/generated raw patterns
-│   │   │── proximity/
-│   │   │   │── train/
-│   │   │   │   │── 0001_red_triangle/
-│   │   │   │   │   │── positive/
-│   │   │   │   │   │   │── 00000.png
-│   │   │   │   │   │   │── 00000.json
-│   │   │   │   │   │   │── 00001.png
-│   │   │   │   │   │   │── 00001.json
-│   │   │   │   │   │   │── 00002.png
-│   │   │   │   │   │   │── 00002.json
-│   │   │   │   │   │── negative/
-│   │   │   │   │   │   │── 00000.png
-│   │   │   │   │   │   │── 00000.json
-│   │   │   │   │   │   │── 00001.png
-│   │   │   │   │   │   │── 00001.json
-│   │   │   │   │   │   │── 00002.png
-│   │   │   │   │   │   │── 00002.json
-│   │   │   │── test/
-│   │   │   │   │── 0001_red_triangle/
-│   │   │   │   │   │── positive/
-│   │   │   │   │   │   │── 00000.png
-│   │   │   │   │   │   │── 00000.json
-│   │   │   │   │   │   │── 00001.png
-│   │   │   │   │   │   │── 00001.json
-│   │   │   │   │   │   │── 00002.png
-│   │   │   │   │   │   │── 00002.json
-│   │   │   │   │   │── negative/
-│   │   │   │   │   │   │── 00000.png
-│   │   │   │   │   │   │── 00000.json
-│   │   │   │   │   │   │── 00001.png
-│   │   │   │   │   │   │── 00001.json
-│   │   │   │   │   │   │── 00002.png
-│   │   │   │   │   │   │── 00002.json
-│   │   │── similarity/
-│   │   │   │── train/
-│   │   │   │── test/
-│   │   │── closure/
-│   │   │   │── train/
-│   │   │   │── test/
-│   │   │── symmetry/
-│   │   │   │── train/
-│   │   │   │── test/
-│   │   │── continuity/
-│   │   │   │── train/
-│   │   │   │── test/
-│── scripts/
-│   │── proximity/             # Folder containing scripts for proximity patterns
-│   │   │── prox_patterns.py
-│   │   │── util...
-│   │── similarity/
-│   │── closure/
-│   │── symmetry/
-│   │── continuity/
-│   │── utils/                 # Folder containing utility functions
-│   │── main.py                # Entry point to generate all patterns of all principles
-│   │── config.py              # Configuration settings for colors, shapes, and numbers
-│   │── evaluate_models.py     # Benchmarking models
-│── README.md
-│── requirements.txt
-```
-
+## Dataset Loading
+The dataset has already been generated and uploaded to the [Huggingface](https://huggingface.co/datasets/akweury/ELVIS).
+This repository on the Github also includes all the code for generating the dataset.
 ## Installation
 To use this benchmark, first clone the repository and install dependencies:
 ```bash
@@ -154,6 +91,73 @@ python -m scripts.evaluate_models --batch_size 1 --principle symmetry --device_i
 
 ```
 
+
+
+## File Structure
+```
+gestalt_benchmark/
+│── data/
+│   │── raw_patterns/         # Unprocessed/generated raw patterns
+│   │   │── proximity/
+│   │   │   │── train/
+│   │   │   │   │── 0001_red_triangle/
+│   │   │   │   │   │── positive/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00000.json
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00001.json
+│   │   │   │   │   │   │── 00002.png
+│   │   │   │   │   │   │── 00002.json
+│   │   │   │   │   │── negative/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00000.json
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00001.json
+│   │   │   │   │   │   │── 00002.png
+│   │   │   │   │   │   │── 00002.json
+│   │   │   │── test/
+│   │   │   │   │── 0001_red_triangle/
+│   │   │   │   │   │── positive/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00000.json
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00001.json
+│   │   │   │   │   │   │── 00002.png
+│   │   │   │   │   │   │── 00002.json
+│   │   │   │   │   │── negative/
+│   │   │   │   │   │   │── 00000.png
+│   │   │   │   │   │   │── 00000.json
+│   │   │   │   │   │   │── 00001.png
+│   │   │   │   │   │   │── 00001.json
+│   │   │   │   │   │   │── 00002.png
+│   │   │   │   │   │   │── 00002.json
+│   │   │── similarity/
+│   │   │   │── train/
+│   │   │   │── test/
+│   │   │── closure/
+│   │   │   │── train/
+│   │   │   │── test/
+│   │   │── symmetry/
+│   │   │   │── train/
+│   │   │   │── test/
+│   │   │── continuity/
+│   │   │   │── train/
+│   │   │   │── test/
+│── scripts/
+│   │── proximity/             # Folder containing scripts for proximity patterns
+│   │   │── prox_patterns.py
+│   │   │── util...
+│   │── similarity/
+│   │── closure/
+│   │── symmetry/
+│   │── continuity/
+│   │── utils/                 # Folder containing utility functions
+│   │── main.py                # Entry point to generate all patterns of all principles
+│   │── config.py              # Configuration settings for colors, shapes, and numbers
+│   │── evaluate_models.py     # Benchmarking models
+│── README.md
+│── requirements.txt
+```
 
 ## Contribution
 We welcome contributions to improve the dataset and evaluation framework. Please submit pull requests with explanations of changes.

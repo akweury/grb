@@ -8,7 +8,7 @@ from scripts.utils.shape_utils import overlaps, overflow
 from scripts.utils import pos_utils, encode_utils, data_utils
 
 
-def proximity_red_triangle(is_positive, obj_size, clu_num, params, obj_quantities, qualifiers):
+def proximity_red_triangle(is_positive, obj_size, clu_num, params, obj_quantities, qualifiers, pin):
     cluster_dist = 0.3  # Increased to ensure clear separation
     neighbour_dist = 0.05
 
@@ -87,14 +87,14 @@ def proximity_red_triangle(is_positive, obj_size, clu_num, params, obj_quantitie
     return objs
 
 
-def non_overlap_red_triangle(fixed_props, is_positive, cluster_num, obj_quantities, qualifiers):
+def non_overlap_red_triangle(fixed_props, is_positive, cluster_num, obj_quantities, qualifiers, pin):
     obj_size = 0.05
-    objs = proximity_red_triangle(is_positive, obj_size, cluster_num, fixed_props, obj_quantities, qualifiers)
+    objs = proximity_red_triangle(is_positive, obj_size, cluster_num, fixed_props, obj_quantities, qualifiers, pin)
     t = 0
     tt = 0
     max_try = 1000
     while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = proximity_red_triangle(is_positive, obj_size, cluster_num, fixed_props, obj_quantities, qualifiers)
+        objs = proximity_red_triangle(is_positive, obj_size, cluster_num, fixed_props, obj_quantities, qualifiers, pin)
         if tt > 10:
             tt = 0
             obj_size = obj_size * 0.90

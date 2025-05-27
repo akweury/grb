@@ -132,7 +132,7 @@ def proximity_big_small_2(is_positive, given_size, cluster_num, fixed_props, obj
     return objs
 
 
-def overlap_big_small(fixed_props, is_positive, cluster_num, obj_quantities):
+def overlap_big_small(fixed_props, is_positive, cluster_num, obj_quantities, pin):
     obj_size = 0.05
     objs = proximity_big_small(is_positive, obj_size, cluster_num, fixed_props, obj_quantities)
     return objs

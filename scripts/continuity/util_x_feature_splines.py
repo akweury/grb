@@ -9,13 +9,15 @@ from scripts import config
 from scripts.utils import encode_utils, data_utils, pos_utils
 from scripts.utils.pos_utils import get_spline_points
 
+
 def get_shaded_points(given_points, dx, dy):
     shaded_points = []
     for point in given_points:
         shaded_points.append([point[0] + dx, point[1] + dy])
     return shaded_points
 
-def feature_continuity_x_splines(params, is_positive, clu_num, obj_quantity):
+
+def feature_continuity_x_splines(params, is_positive, clu_num, obj_quantity, pin):
     objs = []
     obj_size = 0.05
 
@@ -45,49 +47,52 @@ def feature_continuity_x_splines(params, is_positive, clu_num, obj_quantity):
 
     if is_positive:
         if "shape" in params or random.random() < 0.5:
-            shapes = [random.choice(config.bk_shapes[1:])] * line1_num*2
+            shapes = [random.choice(config.bk_shapes[1:])] * line1_num * 2
             shapes += [random.choice(config.bk_shapes[1:])] * line2_num
         else:
-            shapes = data_utils.random_select_unique_mix(config.bk_shapes[1:], line1_num*2)
+            shapes = data_utils.random_select_unique_mix(config.bk_shapes[1:], line1_num * 2)
             shapes += data_utils.random_select_unique_mix(config.bk_shapes[1:], line2_num)
 
         if "color" in params or random.random() < 0.5:
-            colors = [random.choice(config.color_large_exclude_gray)] * line1_num*2
+            colors = [random.choice(config.color_large_exclude_gray)] * line1_num * 2
             colors += [random.choice(config.color_large_exclude_gray)] * line2_num
 
         else:
-            colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, line1_num*2)
+            colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, line1_num * 2)
             colors += data_utils.random_select_unique_mix(config.color_large_exclude_gray, line2_num)
         if "size" in params or random.random() < 0.5:
-            sizes = [obj_size] * line1_num*2
+            sizes = [obj_size] * line1_num * 2
             sizes += [obj_size] * line2_num
         else:
-            sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(line1_num*2)]
+            sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(line1_num * 2)]
             sizes += [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(line2_num)]
 
-        positions = np.concatenate((line1_points,line1_points_shade, line2_points))
+        positions = np.concatenate((line1_points, line1_points_shade, line2_points))
     else:
         if "shape" in params or random.random() < 0.5:
-            shapes = data_utils.random_select_unique_mix(config.bk_shapes[1:], line1_num*2)
+            shapes = data_utils.random_select_unique_mix(config.bk_shapes[1:], line1_num * 2)
             shapes += data_utils.random_select_unique_mix(config.bk_shapes[1:], line2_num)
         else:
-            shapes = [random.choice(config.bk_shapes[1:])] * line1_num*2
+            shapes = [random.choice(config.bk_shapes[1:])] * line1_num * 2
             shapes += [random.choice(config.bk_shapes[1:])] * line2_num
         if "color" in params or random.random() < 0.5:
-            colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, line1_num*2)
+            colors = data_utils.random_select_unique_mix(config.color_large_exclude_gray, line1_num * 2)
             colors += data_utils.random_select_unique_mix(config.color_large_exclude_gray, line2_num)
         else:
-            colors = [random.choice(config.color_large_exclude_gray)] * line1_num*2
+            colors = [random.choice(config.color_large_exclude_gray)] * line1_num * 2
             colors += [random.choice(config.color_large_exclude_gray)] * line2_num
         if "size" in params or random.random() < 0.5:
-            sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(line1_num*2)]
+            sizes = [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(line1_num * 2)]
             sizes += [random.uniform(obj_size * 0.6, obj_size * 1.5) for _ in range(line2_num)]
 
         else:
-            sizes = [obj_size] * line1_num*2
+            sizes = [obj_size] * line1_num * 2
             sizes += [obj_size] * line2_num
-
-        positions = np.concatenate((line1_points,line1_points_shade, line2_points))
+        if pin:
+            positions = np.concatenate((line1_points, line1_points_shade, line2_points))
+        else:
+            positions = pos_utils.get_random_positions(len(line1_points) + len(line1_points_shade) + line2_points,
+                                                       obj_size)
     try:
         for i in range(len(positions)):
             objs.append(encode_utils.encode_objs(

@@ -33,7 +33,7 @@ def get_circumference_positions(angle, radius, num_points=2, obj_dist_factor=1):
     return positions
 
 
-def overlap_circle_features(fixed_props, is_positive, cluster_num, obj_quantities, obj_dist_factor):
+def overlap_circle_features(fixed_props, is_positive, cluster_num, obj_quantities, obj_dist_factor, pin):
     objs = []
     group_sizes = {"s": range(2, 4), "m": range(3, 5), "l": range(2, 7)}.get(obj_quantities, range(2, 4))
     if not is_positive:

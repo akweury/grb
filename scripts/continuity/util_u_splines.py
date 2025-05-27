@@ -6,7 +6,7 @@ from scipy.spatial.distance import cdist
 from scipy.interpolate import make_interp_spline, interp1d
 
 from scripts import config
-from scripts.utils import encode_utils, data_utils
+from scripts.utils import encode_utils, data_utils, pos_utils
 from scripts.utils.shape_utils import overlaps, overflow
 
 
@@ -38,7 +38,7 @@ def get_spline_points(points, n):
     return positions
 
 
-def position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_quantity):
+def position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_quantity, pin):
     objs = []
 
     # draw the main road
@@ -55,7 +55,6 @@ def position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_qu
         [random.uniform(0.4, 0.6), random.uniform(0.8, 0.9)],  # start point,
         [random.uniform(0.8, 0.9), random.uniform(0.1, 0.2)]
     ])
-
 
     line_obj_num_1 = {"s": 5, "m": 7, "l": 12}.get(obj_quantity, 2)
     line_obj_num_2 = {"s": 7, "m": 10, "l": 15}.get(obj_quantity, 2)
@@ -110,8 +109,10 @@ def position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_qu
         else:
             sizes = [obj_size] * line1_num
             sizes += [obj_size] * line2_num
-
-        positions = np.concatenate((line1_points, line2_points))
+        if pin:
+            positions = np.concatenate((line1_points, line2_points))
+        else:
+            positions = pos_utils.get_random_positions(len(line1_points) + len(line2_points), obj_size)
     try:
         for i in range(len(positions)):
             objs.append(encode_utils.encode_objs(
@@ -129,14 +130,14 @@ def position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_qu
     return objs
 
 
-def non_overlap_u_splines(params, is_positive, clu_num, obj_quantity):
+def non_overlap_u_splines(params, is_positive, clu_num, obj_quantity, pin):
     obj_size = 0.05
-    objs = position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_quantity)
+    objs = position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_quantity, pin)
     t = 0
     tt = 0
     max_try = 2000
     while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_quantity)
+        objs = position_continuity_u_splines(obj_size, is_positive, clu_num, params, obj_quantity, pin)
         if tt > 10:
             tt = 0
             obj_size = obj_size * 0.90

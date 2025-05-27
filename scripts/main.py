@@ -11,7 +11,7 @@ from scripts.proximity import prox_patterns
 from scripts.similarity import similarity_patterns
 from scripts.symmetry import symmetry_patterns
 from scripts.continuity import continuity_patterns
-from  scripts.closure import closure_patterns
+from scripts.closure import closure_patterns
 
 
 def gen_image(objs):
@@ -63,9 +63,12 @@ def save_patterns(pattern_data, pattern, save_path, num_samples, is_positive):
 
 
 def save_principle_patterns(principle_name, pattern_dicts):
-    principle_path = config.raw_patterns / principle_name
-    file_utils.remove_folder(principle_path)
+    resolution_folder = config.raw_patterns / f"res_{config.img_width}_pin_{config.prin_in_neg}"
+    os.makedirs(resolution_folder, exist_ok=True)
+    principle_path = resolution_folder / principle_name
     os.makedirs(principle_path, exist_ok=True)
+
+    file_utils.remove_folder(principle_path)
 
     pattern_counter = 0
     num_samp = config.num_samples

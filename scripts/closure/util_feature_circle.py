@@ -9,7 +9,7 @@ from scripts.utils.shape_utils import overlaps, overflow
 from scripts.utils.pos_utils import get_feature_circle_positions
 
 
-def feature_closure_circle(is_positive, clu_num, params):
+def feature_closure_circle(is_positive, clu_num, params, pin):
     cluster_dist = 0.3
     x_min = 0.2
     x_max = 0.8
@@ -31,7 +31,7 @@ def feature_closure_circle(is_positive, clu_num, params):
         obj_size = clu_size * (0.3 + random.random() * 0.1)
 
         positions = get_feature_circle_positions(group_anchors[i], clu_size)
-        if not is_positive and random.random() > 0.5:
+        if not is_positive and pin and random.random() > 0.5:
             positions[-1] = pos_utils.random_shift_point(positions[-1], 0.05, clu_size / 2)
             is_positive = True
         if is_positive:
@@ -95,13 +95,13 @@ def feature_closure_circle(is_positive, clu_num, params):
     return objs
 
 
-def non_overlap_feature_circle(params, is_positive, clu_num):
-    objs = feature_closure_circle(is_positive, clu_num, params)
+def non_overlap_feature_circle(params, is_positive, clu_num, pin):
+    objs = feature_closure_circle(is_positive, clu_num, params, pin)
     t = 0
     tt = 0
     max_try = 2000
     while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = feature_closure_circle(is_positive, clu_num, params)
+        objs = feature_closure_circle(is_positive, clu_num, params, pin)
         if tt > 10:
             tt = 0
         tt = tt + 1

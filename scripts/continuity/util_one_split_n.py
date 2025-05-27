@@ -29,7 +29,7 @@ def get_main_split_positions(split_road_length, minx, dx, main_y, dy):
     return positions
 
 
-def continuity_one_splits_n(obj_size, is_positive, clu_num, params, obj_quantity):
+def continuity_one_splits_n(obj_size, is_positive, params, obj_quantity, prin_in_neg):
     objs = []
     main_road_length = {"s": 2, "m": 3, "l": 5}.get(obj_quantity, 2)
     split_road_length = {"s": 2, "m": 3, "l": 5}.get(obj_quantity, 2)
@@ -107,11 +107,14 @@ def continuity_one_splits_n(obj_size, is_positive, clu_num, params, obj_quantity
             sizes_split = [obj_size] * split_road_length
             sizes = sizes_main + sizes_split
 
-        positions_main = get_main_positions(main_road_length, minx, dx, main_y)
-        positions_main += get_main_split_positions(split_road_length, minx + main_road_length * dx, dx, main_y, dy)
+        if prin_in_neg:
+            positions_main = get_main_positions(main_road_length, minx, dx, main_y)
+            positions_main += get_main_split_positions(split_road_length, minx + main_road_length * dx, dx, main_y, dy)
 
-        positions_split = get_split_positions(split_road_length, minx + main_road_length * dx, dx, main_y, dy)
-        positions = positions_main + positions_split
+            positions_split = get_split_positions(split_road_length, minx + main_road_length * dx, dx, main_y, dy)
+            positions = positions_main + positions_split
+        else:
+            positions = pos_utils.get_random_positions(main_road_length + split_road_length, obj_size)
 
     for i in range(len(positions)):
         objs.append(encode_utils.encode_objs(
@@ -126,15 +129,15 @@ def continuity_one_splits_n(obj_size, is_positive, clu_num, params, obj_quantity
     return objs
 
 
-def non_overlap_one_split_n(params, is_positive, clu_num, obj_quantity):
+def non_overlap_one_split_n(params, is_positive, clu_num, obj_quantity, prin_in_neg=True):
     obj_size = 0.05
 
-    objs = continuity_one_splits_n(obj_size, is_positive, clu_num, params, obj_quantity)
+    objs = continuity_one_splits_n(obj_size, is_positive, params, obj_quantity, prin_in_neg=prin_in_neg)
     t = 0
     tt = 0
     max_try = 1000
     while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = continuity_one_splits_n(obj_size, is_positive, clu_num, params, obj_quantity)
+        objs = continuity_one_splits_n(obj_size, is_positive, params, obj_quantity, prin_in_neg=prin_in_neg)
         if tt > 10:
             tt = 0
             obj_size = obj_size * 0.90

@@ -19,7 +19,7 @@ def generate_random_anchor(existing_anchors):
             return anchor
 
 
-def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity):
+def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity, pin):
     objs = []
     positions = []
     # Generate random anchors for clusters ensuring proper distance
@@ -34,7 +34,7 @@ def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity):
     obj_num = len(positions)
 
     # 30% of the negative images, random object positions but other properties as same as positive
-    if not is_positive and random.random() < 0.3:
+    if not is_positive and pin and random.random() < 0.3:
         positions = pos_utils.get_random_positions(obj_num, obj_size)
         is_positive = True
     if is_positive:
@@ -91,14 +91,14 @@ def closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity):
     return objs
 
 
-def non_overlap_big_triangle(params, is_positive, clu_num, obj_quantity):
+def non_overlap_big_triangle(params, is_positive, clu_num, obj_quantity, pin):
     obj_size = 0.05
-    objs = closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity)
+    objs = closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity, pin)
     t = 0
     tt = 0
     max_try = 2000
     while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity)
+        objs = closure_big_triangle(obj_size, is_positive, clu_num, params, obj_quantity, pin)
         if tt > 10:
             tt = 0
             obj_size = obj_size * 0.90

@@ -9,7 +9,7 @@ from scripts.utils.shape_utils import overlaps, overflow
 from scripts.utils.pos_utils import get_feature_square_positions
 
 
-def feature_closure_square(is_positive, clu_num, params):
+def feature_closure_square(is_positive, clu_num, params, pin):
     cluster_dist = 0.2
     x_min = 0.25
     x_max = 0.75
@@ -34,7 +34,7 @@ def feature_closure_square(is_positive, clu_num, params):
         positions = get_feature_square_positions(group_anchors[i], clu_size)
         shapes = ["pac_man"] * obj_num
         # 50% of the negative images, random object positions but other properties as same as positive
-        if not is_positive and random.random() > 0.5:
+        if not is_positive and pin and random.random() > 0.5:
             start_angles = random.sample(range(0, 360), obj_num)
             end_angles = [angle + 270 for angle in start_angles]
             is_positive = True
@@ -81,13 +81,13 @@ def feature_closure_square(is_positive, clu_num, params):
     return objs
 
 
-def non_overlap_feature_square(params, is_positive, clu_num):
-    objs = feature_closure_square(is_positive, clu_num, params)
+def non_overlap_feature_square(params, is_positive, clu_num, pin):
+    objs = feature_closure_square(is_positive, clu_num, params, pin)
     t = 0
     tt = 0
     max_try = 2000
     while (overlaps(objs) or overflow(objs)) and (t < max_try):
-        objs = feature_closure_square(is_positive, clu_num, params)
+        objs = feature_closure_square(is_positive, clu_num, params, pin)
         if tt > 10:
             tt = 0
         tt = tt + 1

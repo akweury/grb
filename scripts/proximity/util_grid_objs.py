@@ -56,7 +56,7 @@ def proximity_grid(is_positive, obj_size, cluster_num=1, fixed_props="", obj_qua
     return objs
 
 
-def non_overlap_grid(fixed_props, is_positive, cluster_num, obj_quantities):
+def non_overlap_grid(fixed_props, is_positive, cluster_num, obj_quantities, pin):
     obj_size = 0.05
     objs = proximity_grid(is_positive, obj_size, cluster_num, fixed_props, obj_quantities)
     t = 0

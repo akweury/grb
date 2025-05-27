@@ -80,7 +80,7 @@ def proximity_fixed_props(fixed_props, is_positive, obj_size, obj_quantities):
     return objs
 
 
-def non_overlap_fixed_props(fixed_props, is_positive, obj_quantities):
+def non_overlap_fixed_props(fixed_props, is_positive, obj_quantities, pin):
     obj_size = 0.05
     objs = proximity_fixed_props(fixed_props, is_positive, obj_size, obj_quantities)
     t = 0
